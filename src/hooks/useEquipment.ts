@@ -22,6 +22,7 @@ export const useEquipment = () => {
           id: '1',
           name: 'Freezer Vertical',
           sector: 'Congelados',
+          responsible: 'João Silva',
           periodicity: 7,
           lastCleaning: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
           createdAt: new Date().toISOString(),
@@ -30,6 +31,7 @@ export const useEquipment = () => {
           id: '2',
           name: 'Balança Digital',
           sector: 'Açougue',
+          responsible: 'Maria Santos',
           periodicity: 3,
           lastCleaning: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
           createdAt: new Date().toISOString(),
@@ -38,6 +40,7 @@ export const useEquipment = () => {
           id: '3',
           name: 'Câmara Fria',
           sector: 'Frios',
+          responsible: 'Pedro Costa',
           periodicity: 14,
           lastCleaning: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
           createdAt: new Date().toISOString(),
@@ -90,6 +93,7 @@ export const useEquipment = () => {
 
   const markAsCleaned = (equipmentId: string) => {
     const now = new Date().toISOString();
+    const equipmentItem = equipment.find(eq => eq.id === equipmentId);
     
     // Update equipment last cleaning date
     updateEquipment(equipmentId, { lastCleaning: now });
@@ -99,6 +103,7 @@ export const useEquipment = () => {
       id: crypto.randomUUID(),
       equipmentId,
       cleaningDate: now,
+      responsibleBy: equipmentItem?.responsible || 'Não informado',
       createdAt: now,
     };
     

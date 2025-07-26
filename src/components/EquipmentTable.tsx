@@ -62,6 +62,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
           <TableRow>
             <TableHead>Equipamento</TableHead>
             <TableHead>Setor</TableHead>
+            <TableHead>Responsável</TableHead>
             <TableHead>Periodicidade</TableHead>
             <TableHead>Última Limpeza</TableHead>
             <TableHead>Status</TableHead>
@@ -71,7 +72,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
         <TableBody>
           {equipment.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                 Nenhum equipamento cadastrado
               </TableCell>
             </TableRow>
@@ -80,6 +81,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
               <TableRow key={item.id} className={getRowClassName(item)}>
                 <TableCell className="font-medium">{item.name}</TableCell>
                 <TableCell>{item.sector}</TableCell>
+                <TableCell className="text-muted-foreground">{item.responsible}</TableCell>
                 <TableCell>{item.periodicity} dias</TableCell>
                 <TableCell>{formatDate(item.lastCleaning)}</TableCell>
                 <TableCell>{getStatusBadge(item)}</TableCell>

@@ -39,7 +39,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
             Histórico de Limpezas - {equipment.name}
           </DialogTitle>
           <div className="text-sm text-muted-foreground">
-            Setor: {equipment.sector} • Periodicidade: {equipment.periodicity} dias
+            Setor: {equipment.sector} • Responsável: {equipment.responsible} • Periodicidade: {equipment.periodicity} dias
           </div>
         </DialogHeader>
         
@@ -54,6 +54,7 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Data da Limpeza</TableHead>
+                    <TableHead>Feito por</TableHead>
                     <TableHead>Registrado em</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -64,20 +65,23 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                       <TableCell className="font-medium">
                         {formatDate(entry.cleaningDate)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(entry.createdAt)}
-                      </TableCell>
-                      <TableCell>
-                        {index === 0 ? (
-                          <Badge className="bg-success text-success-foreground">
-                            Mais recente
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">
-                            Histórico
-                          </Badge>
-                        )}
-                      </TableCell>
+                       <TableCell className="text-muted-foreground">
+                         {entry.responsibleBy}
+                       </TableCell>
+                       <TableCell className="text-muted-foreground">
+                         {formatDate(entry.createdAt)}
+                       </TableCell>
+                       <TableCell>
+                         {index === 0 ? (
+                           <Badge className="bg-success text-success-foreground">
+                             Mais recente
+                           </Badge>
+                         ) : (
+                           <Badge variant="outline">
+                             Histórico
+                           </Badge>
+                         )}
+                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

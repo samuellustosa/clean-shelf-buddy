@@ -29,6 +29,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   const [formData, setFormData] = useState({
     name: equipment?.name || '',
     sector: equipment?.sector || '',
+    responsible: equipment?.responsible || '',
     periodicity: equipment?.periodicity || 7,
     lastCleaning: equipment?.lastCleaning ? equipment.lastCleaning.split('T')[0] : new Date().toISOString().split('T')[0],
   });
@@ -38,6 +39,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     onSubmit({
       name: formData.name,
       sector: formData.sector,
+      responsible: formData.responsible,
       periodicity: formData.periodicity,
       lastCleaning: new Date(formData.lastCleaning).toISOString(),
     });
@@ -45,6 +47,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     setFormData({
       name: '',
       sector: '',
+      responsible: '',
       periodicity: 7,
       lastCleaning: new Date().toISOString().split('T')[0],
     });
@@ -81,6 +84,17 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               value={formData.sector}
               onChange={(e) => handleChange('sector', e.target.value)}
               placeholder="Ex: Congelados"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="responsible">Responsável</Label>
+            <Input
+              id="responsible"
+              value={formData.responsible}
+              onChange={(e) => handleChange('responsible', e.target.value)}
+              placeholder="Ex: João Silva"
               required
             />
           </div>
