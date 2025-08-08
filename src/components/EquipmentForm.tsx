@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ import { Equipment } from '@/types/equipment';
 interface EquipmentFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (equipment: Omit<Equipment, 'id' | 'createdAt'>) => void;
+  onSubmit: (equipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => void;
   equipment?: Equipment;
   mode: 'create' | 'edit';
 }
@@ -27,21 +27,30 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   mode,
 }) => {
   const [formData, setFormData] = useState({
-    name: equipment?.name || '',
-    sector: equipment?.sector || '',
-    responsible: equipment?.responsible || '',
-    periodicity: equipment?.periodicity || 7,
-    lastCleaning: equipment?.lastCleaning ? equipment.lastCleaning.split('T')[0] : new Date().toISOString().split('T')[0],
+    name: '',
+    sector: '',
+    responsible: '',
+    periodicity: 7,
+    last_cleaning: new Date().toISOString().split('T')[0]
   });
+
+  useEffect(() => {
+    if (equipment) {
+      setFormData({
+        name: equipment.name,
+        sector: equipment.sector,
+        responsible: equipment.responsible,
+        periodicity: equipment.periodicity,
+        last_cleaning: equipment.last_cleaning || new Date().toISOString().split('T')[0]
+      });
+    }
+  }, [equipment]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      name: formData.name,
-      sector: formData.sector,
-      responsible: formData.responsible,
-      periodicity: formData.periodicity,
-      lastCleaning: new Date(formData.lastCleaning).toISOString(),
+      ...formData,
+      last_cleaning: formData.last_cleaning
     });
     onClose();
     setFormData({
@@ -49,12 +58,16 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       sector: '',
       responsible: '',
       periodicity: 7,
-      lastCleaning: new Date().toISOString().split('T')[0],
+      last_cleaning: new Date().toISOString().split('T')[0]
     });
   };
 
-  const handleChange = (field: string, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [id]: id === 'periodicity' ? parseInt(value) || 0 : value
+    }));
   };
 
   return (
@@ -71,8 +84,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             <Input
               id="name"
               value={formData.name}
-              onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Ex: Freezer Vertical"
+              onChange={handleChange}
+              placeholder="Ex: Autoclave A1"
               required
             />
           </div>
@@ -82,8 +95,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             <Input
               id="sector"
               value={formData.sector}
-              onChange={(e) => handleChange('sector', e.target.value)}
-              placeholder="Ex: Congelados"
+              onChange={handleChange}
+              placeholder="Ex: Laboratório"
               required
             />
           </div>
@@ -93,7 +106,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
             <Input
               id="responsible"
               value={formData.responsible}
-              onChange={(e) => handleChange('responsible', e.target.value)}
+              onChange={handleChange}
               placeholder="Ex: João Silva"
               required
             />
@@ -106,18 +119,18 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               type="number"
               min="1"
               value={formData.periodicity}
-              onChange={(e) => handleChange('periodicity', parseInt(e.target.value))}
+              onChange={handleChange}
               required
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="lastCleaning">Data da Última Limpeza</Label>
+            <Label htmlFor="last_cleaning">Data da Última Limpeza</Label>
             <Input
-              id="lastCleaning"
+              id="last_cleaning"
               type="date"
-              value={formData.lastCleaning}
-              onChange={(e) => handleChange('lastCleaning', e.target.value)}
+              value={formData.last_cleaning}
+              onChange={handleChange}
               required
             />
           </div>

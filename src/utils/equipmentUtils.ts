@@ -2,7 +2,7 @@ import { Equipment, EquipmentStatus } from '@/types/equipment';
 
 export const getEquipmentStatus = (equipment: Equipment): EquipmentStatus => {
   const today = new Date();
-  const lastCleaningDate = new Date(equipment.lastCleaning);
+  const lastCleaningDate = new Date(equipment.last_cleaning);
   const nextCleaningDate = new Date(lastCleaningDate);
   nextCleaningDate.setDate(lastCleaningDate.getDate() + equipment.periodicity);
 
@@ -11,7 +11,7 @@ export const getEquipmentStatus = (equipment: Equipment): EquipmentStatus => {
 
 export const getDaysUntilNextCleaning = (equipment: Equipment): number => {
   const today = new Date();
-  const lastCleaningDate = new Date(equipment.lastCleaning);
+  const lastCleaningDate = new Date(equipment.last_cleaning);
   const nextCleaningDate = new Date(lastCleaningDate);
   nextCleaningDate.setDate(lastCleaningDate.getDate() + equipment.periodicity);
 

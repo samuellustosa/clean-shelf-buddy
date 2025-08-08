@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
+import { useEquipmentFilters } from '@/hooks/useEquipmentFilters';
 import { Equipment } from '@/types/equipment';
 import { EquipmentTable } from '@/components/EquipmentTable';
 import { EquipmentForm } from '@/components/EquipmentForm';
 import { HistoryModal } from '@/components/HistoryModal';
+import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
 import { Plus, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 const Index = () => {
   const {
     equipment,
+    loading,
     addEquipment,
     updateEquipment,
     deleteEquipment,
@@ -18,10 +21,20 @@ const Index = () => {
     getEquipmentHistory,
   } = useEquipment();
 
+  const {
+    filters,
+    setFilters,
+    filteredEquipment,
+    uniqueSectors,
+    uniqueResponsibles,
+    clearFilters
+  } = useEquipmentFilters(equipment);
+
   const { toast } = useToast();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -38,36 +51,20 @@ const Index = () => {
     setIsFormOpen(true);
   };
 
-  const handleSubmitEquipment = (equipmentData: Omit<Equipment, 'id' | 'createdAt'>) => {
+  const handleSubmitEquipment = (equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
     if (formMode === 'create') {
       addEquipment(equipmentData);
-      toast({
-        title: "Equipamento criado",
-        description: "O equipamento foi adicionado com sucesso.",
-      });
     } else if (editingEquipment) {
       updateEquipment(editingEquipment.id, equipmentData);
-      toast({
-        title: "Equipamento atualizado",
-        description: "As alterações foram salvas com sucesso.",
-      });
     }
   };
 
   const handleDeleteEquipment = (id: string) => {
     deleteEquipment(id);
-    toast({
-      title: "Equipamento removido",
-      description: "O equipamento foi excluído do sistema.",
-    });
   };
 
   const handleMarkCleaned = (id: string) => {
     markAsCleaned(id);
-    toast({
-      title: "Limpeza registrada",
-      description: "A limpeza foi marcada como concluída.",
-    });
   };
 
   const handleViewHistory = (equipment: Equipment) => {
@@ -98,8 +95,18 @@ const Index = () => {
           </Button>
         </div>
 
+        <AdvancedFilters
+          filters={filters}
+          setFilters={setFilters}
+          uniqueSectors={uniqueSectors}
+          uniqueResponsibles={uniqueResponsibles}
+          clearFilters={clearFilters}
+          isOpen={isFiltersOpen}
+          onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
+        />
+
         <EquipmentTable
-          equipment={equipment}
+          equipment={filteredEquipment}
           onEdit={handleEditEquipment}
           onDelete={handleDeleteEquipment}
           onMarkCleaned={handleMarkCleaned}

@@ -83,7 +83,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                 <TableCell>{item.sector}</TableCell>
                 <TableCell className="text-muted-foreground">{item.responsible}</TableCell>
                 <TableCell>{item.periodicity} dias</TableCell>
-                <TableCell>{formatDate(item.lastCleaning)}</TableCell>
+                <TableCell>{formatDate(item.last_cleaning)}</TableCell>
                 <TableCell>{getStatusBadge(item)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">

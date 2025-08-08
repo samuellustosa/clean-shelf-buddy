@@ -1,129 +1,209 @@
 import { useState, useEffect } from 'react';
 import { Equipment, CleaningHistory } from '@/types/equipment';
-
-const EQUIPMENT_STORAGE_KEY = 'cleaning-checklist-equipment';
-const HISTORY_STORAGE_KEY = 'cleaning-checklist-history';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const useEquipment = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
-  // Load data from localStorage on mount
+  // Load data from Supabase on mount
   useEffect(() => {
-    const savedEquipment = localStorage.getItem(EQUIPMENT_STORAGE_KEY);
-    const savedHistory = localStorage.getItem(HISTORY_STORAGE_KEY);
-
-    if (savedEquipment) {
-      setEquipment(JSON.parse(savedEquipment));
-    } else {
-      // Initialize with sample data
-      const sampleEquipment: Equipment[] = [
-        {
-          id: '1',
-          name: 'Freezer Vertical',
-          sector: 'Congelados',
-          responsible: 'João Silva',
-          periodicity: 7,
-          lastCleaning: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          name: 'Balança Digital',
-          sector: 'Açougue',
-          responsible: 'Maria Santos',
-          periodicity: 3,
-          lastCleaning: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days ago
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          name: 'Câmara Fria',
-          sector: 'Frios',
-          responsible: 'Pedro Costa',
-          periodicity: 14,
-          lastCleaning: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(), // 10 days ago
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setEquipment(sampleEquipment);
-      localStorage.setItem(EQUIPMENT_STORAGE_KEY, JSON.stringify(sampleEquipment));
-    }
-
-    if (savedHistory) {
-      setHistory(JSON.parse(savedHistory));
-    }
+    fetchEquipment();
+    fetchHistory();
   }, []);
 
-  const saveEquipment = (newEquipment: Equipment[]) => {
-    setEquipment(newEquipment);
-    localStorage.setItem(EQUIPMENT_STORAGE_KEY, JSON.stringify(newEquipment));
+  const fetchEquipment = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setEquipment(data || []);
+    } catch (error) {
+      console.error('Error fetching equipment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar equipamentos",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const saveHistory = (newHistory: CleaningHistory[]) => {
-    setHistory(newHistory);
-    localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(newHistory));
+  const fetchHistory = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('cleaning_history')
+        .select('*')
+        .order('cleaning_date', { ascending: false });
+
+      if (error) throw error;
+      setHistory(data || []);
+    } catch (error) {
+      console.error('Error fetching history:', error);
+    }
   };
 
-  const addEquipment = (newEquipment: Omit<Equipment, 'id' | 'createdAt'>) => {
-    const newEquipmentItem: Equipment = {
-      ...newEquipment,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    const updated = [...equipment, newEquipmentItem];
-    saveEquipment(updated);
+  const addEquipment = async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .insert([newEquipment])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEquipment(prev => [data, ...prev]);
+      toast({
+        title: "Sucesso",
+        description: "Equipamento adicionado com sucesso"
+      });
+    } catch (error) {
+      console.error('Error adding equipment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao adicionar equipamento",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const updateEquipment = (id: string, updates: Partial<Equipment>) => {
-    const updated = equipment.map(eq => 
-      eq.id === id ? { ...eq, ...updates } : eq
-    );
-    saveEquipment(updated);
+  const updateEquipment = async (id: string, updates: Partial<Equipment>) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setEquipment(prev => prev.map(item => item.id === id ? data : item));
+      toast({
+        title: "Sucesso",
+        description: "Equipamento atualizado com sucesso"
+      });
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao atualizar equipamento",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const deleteEquipment = (id: string) => {
-    const updated = equipment.filter(eq => eq.id !== id);
-    saveEquipment(updated);
-    
-    // Also remove related history
-    const updatedHistory = history.filter(h => h.equipmentId !== id);
-    saveHistory(updatedHistory);
+  const deleteEquipment = async (id: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('equipment')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setEquipment(prev => prev.filter(item => item.id !== id));
+      setHistory(prev => prev.filter(item => item.equipment_id !== id));
+      
+      toast({
+        title: "Sucesso",
+        description: "Equipamento removido com sucesso"
+      });
+    } catch (error) {
+      console.error('Error deleting equipment:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao remover equipamento",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const markAsCleaned = (equipmentId: string) => {
-    const now = new Date().toISOString();
-    const equipmentItem = equipment.find(eq => eq.id === equipmentId);
-    
-    // Update equipment last cleaning date
-    updateEquipment(equipmentId, { lastCleaning: now });
-    
-    // Add to history
-    const historyEntry: CleaningHistory = {
-      id: crypto.randomUUID(),
-      equipmentId,
-      cleaningDate: now,
-      responsibleBy: equipmentItem?.responsible || 'Não informado',
-      createdAt: now,
-    };
-    
-    const updatedHistory = [...history, historyEntry];
-    saveHistory(updatedHistory);
+  const markAsCleaned = async (equipmentId: string) => {
+    setLoading(true);
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Update equipment's last_cleaning date
+      const { data: equipmentData, error: equipmentError } = await supabase
+        .from('equipment')
+        .update({ last_cleaning: today })
+        .eq('id', equipmentId)
+        .select()
+        .single();
+
+      if (equipmentError) throw equipmentError;
+
+      // Add to cleaning history
+      const { data: historyData, error: historyError } = await supabase
+        .from('cleaning_history')
+        .insert([{
+          equipment_id: equipmentId,
+          cleaning_date: today,
+          responsible_by: equipmentData.responsible
+        }])
+        .select()
+        .single();
+
+      if (historyError) throw historyError;
+
+      setEquipment(prev => prev.map(item => 
+        item.id === equipmentId ? equipmentData : item
+      ));
+      setHistory(prev => [historyData, ...prev]);
+
+      toast({
+        title: "Sucesso",
+        description: "Limpeza registrada com sucesso"
+      });
+    } catch (error) {
+      console.error('Error marking as cleaned:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao registrar limpeza",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const getEquipmentHistory = (equipmentId: string) => {
+  const getEquipmentHistory = (equipmentId: string): CleaningHistory[] => {
     return history
-      .filter(h => h.equipmentId === equipmentId)
-      .sort((a, b) => new Date(b.cleaningDate).getTime() - new Date(a.cleaningDate).getTime());
+      .filter(item => item.equipment_id === equipmentId)
+      .sort((a, b) => new Date(b.cleaning_date).getTime() - new Date(a.cleaning_date).getTime());
   };
 
   return {
     equipment,
     history,
+    loading,
     addEquipment,
     updateEquipment,
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
+    refetch: () => {
+      fetchEquipment();
+      fetchHistory();
+    }
   };
 };

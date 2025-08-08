@@ -14,7 +14,71 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      cleaning_history: {
+        Row: {
+          cleaning_date: string
+          created_at: string
+          equipment_id: string
+          id: string
+          responsible_by: string
+        }
+        Insert: {
+          cleaning_date: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          responsible_by: string
+        }
+        Update: {
+          cleaning_date?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          responsible_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cleaning_history_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment: {
+        Row: {
+          created_at: string
+          id: string
+          last_cleaning: string
+          name: string
+          periodicity: number
+          responsible: string
+          sector: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_cleaning: string
+          name: string
+          periodicity: number
+          responsible: string
+          sector: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_cleaning?: string
+          name?: string
+          periodicity?: number
+          responsible?: string
+          sector?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -61,16 +61,16 @@ export const HistoryModal: React.FC<HistoryModalProps> = ({
                 </TableHeader>
                 <TableBody>
                   {history.map((entry, index) => (
-                    <TableRow key={entry.id}>
-                      <TableCell className="font-medium">
-                        {formatDate(entry.cleaningDate)}
-                      </TableCell>
-                       <TableCell className="text-muted-foreground">
-                         {entry.responsibleBy}
-                       </TableCell>
-                       <TableCell className="text-muted-foreground">
-                         {formatDate(entry.createdAt)}
-                       </TableCell>
+                      <TableRow key={entry.id}>
+                        <TableCell className="font-medium">
+                          {formatDate(entry.cleaning_date)}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {entry.responsible_by}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {formatDate(entry.created_at.split('T')[0])}
+                        </TableCell>
                        <TableCell>
                          {index === 0 ? (
                            <Badge className="bg-success text-success-foreground">
