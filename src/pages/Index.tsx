@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useEquipmentFilters } from '@/hooks/useEquipmentFilters';
 import { Equipment } from '@/types/equipment';
@@ -9,6 +9,8 @@ import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
 import { Plus, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const {
@@ -38,6 +40,7 @@ const Index = () => {
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const handleCreateEquipment = () => {
     setEditingEquipment(null);
@@ -72,6 +75,16 @@ const Index = () => {
     setIsHistoryOpen(true);
   };
 
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
   const equipmentHistory = selectedEquipment 
     ? getEquipmentHistory(selectedEquipment.id)
     : [];
@@ -89,10 +102,27 @@ const Index = () => {
               Controle de limpeza de equipamentos do supermercado
             </p>
           </div>
-          <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
-            <Plus className="h-4 w-4" />
-            Novo Equipamento
-          </Button>
+          <div className="flex items-center gap-2">
+            {!isAuthenticated ? (
+              <Button variant="outline" asChild>
+                <Link to="/auth">Entrar</Link>
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                  toast({ title: 'Você saiu.' });
+                }}
+              >
+                Sair
+              </Button>
+            )}
+            <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Novo Equipamento
+            </Button>
+          </div>
         </div>
 
         <AdvancedFilters
