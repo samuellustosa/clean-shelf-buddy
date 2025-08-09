@@ -20,19 +20,20 @@ const Index = () => {
   const {
     equipment,
     loading,
+    totalItems,
+    uniqueSectors, // Novo estado
+    uniqueResponsibles, // Novo estado
     addEquipment,
     updateEquipment,
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-  } = useEquipment();
+  } = useEquipment(currentPage, itemsPerPage);
 
   const {
     filters,
     setFilters,
     filteredEquipment,
-    uniqueSectors,
-    uniqueResponsibles,
     clearFilters
   } = useEquipmentFilters(equipment);
 
@@ -47,13 +48,8 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
-  const totalItems = filteredEquipment.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-
-  const paginatedEquipment = filteredEquipment.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  const paginatedEquipment = filteredEquipment;
 
   const handleCreateEquipment = () => {
     setEditingEquipment(null);

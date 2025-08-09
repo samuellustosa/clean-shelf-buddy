@@ -4,24 +4,34 @@ import { Equipment, CleaningHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useEquipment = () => {
+export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0);
+  const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
+  const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchEquipment();
-    fetchHistory();
-  }, []);
-
-  const fetchEquipment = async () => {
+  const fetchEquipment = async (page: number, pageSize: number) => {
     setLoading(true);
     try {
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+
+      const { count } = await supabase
+        .from('equipment')
+        .select('*', { count: 'exact', head: true });
+
+      if (count !== null) {
+        setTotalItems(count);
+      }
+
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .range(from, to);
 
       if (error) throw error;
       setEquipment(data || []);
@@ -34,6 +44,33 @@ export const useEquipment = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUniqueValues = async () => {
+    try {
+      // Fetch all unique sectors
+      const { data: sectorsData, error: sectorsError } = await supabase
+        .from('equipment')
+        .select('sector')
+        .limit(1000); 
+
+      if (sectorsError) throw sectorsError;
+      const uniqueSectorsArray = Array.from(new Set(sectorsData.map(item => item.sector))).sort();
+      setUniqueSectors(uniqueSectorsArray);
+
+      // Fetch all unique responsibles
+      const { data: responsiblesData, error: responsiblesError } = await supabase
+        .from('equipment')
+        .select('responsible')
+        .limit(1000);
+
+      if (responsiblesError) throw responsiblesError;
+      const uniqueResponsiblesArray = Array.from(new Set(responsiblesData.map(item => item.responsible))).sort();
+      setUniqueResponsibles(uniqueResponsiblesArray);
+
+    } catch (error) {
+      console.error('Error fetching unique values:', error);
     }
   };
   
@@ -51,6 +88,12 @@ export const useEquipment = () => {
     }
   };
 
+  useEffect(() => {
+    fetchEquipment(currentPage, itemsPerPage);
+    fetchHistory();
+    fetchUniqueValues(); // Busca os valores de filtro separadamente
+  }, [currentPage, itemsPerPage]);
+
   const addEquipment = async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
     setLoading(true);
     try {
@@ -67,6 +110,7 @@ export const useEquipment = () => {
         title: "Sucesso",
         description: "Equipamento adicionado com sucesso"
       });
+      fetchUniqueValues(); // Atualiza a lista de filtros após a adição
     } catch (error) {
       console.error('Error adding equipment:', error);
       toast({
@@ -96,6 +140,7 @@ export const useEquipment = () => {
         title: "Sucesso",
         description: "Equipamento atualizado com sucesso"
       });
+      fetchUniqueValues(); // Atualiza a lista de filtros após a atualização
     } catch (error) {
       console.error('Error updating equipment:', error);
       toast({
@@ -125,6 +170,7 @@ export const useEquipment = () => {
         title: "Sucesso",
         description: "Equipamento removido com sucesso"
       });
+      fetchUniqueValues(); // Atualiza a lista de filtros após a exclusão
     } catch (error) {
       console.error('Error deleting equipment:', error);
       toast({
@@ -194,6 +240,9 @@ export const useEquipment = () => {
     equipment,
     history,
     loading,
+    totalItems,
+    uniqueSectors,
+    uniqueResponsibles,
     addEquipment,
     updateEquipment,
     deleteEquipment,
