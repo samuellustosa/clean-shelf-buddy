@@ -19,6 +19,17 @@ const AuthPage = () => {
     document.title = mode === 'login' ? 'Login | Checklist de Limpeza' : 'Criar conta | Checklist de Limpeza';
   }, [mode]);
 
+  // Redireciona para a home se já estiver autenticado
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) navigate('/');
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/');
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
   const handleLogin = async () => {
     setLoading(true);
     try {

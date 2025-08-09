@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 
 const Auth = lazy(() => import("./pages/Auth"));
 
@@ -19,7 +20,9 @@ const App = () => (
       <BrowserRouter>
         <Suspense fallback={<div className="p-4">Carregando…</div>}>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route element={<ProtectedRoute />}>
+              <Route path="/" element={<Index />} />
+            </Route>
             <Route path="/auth" element={<Auth />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
