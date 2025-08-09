@@ -45,6 +45,9 @@ const AuthPage = () => {
       if (error) throw error;
       toast({ title: 'Verifique seu e-mail', description: 'Enviamos um link de confirmação.' });
       setMode('login');
+      // Limpa os campos após cadastro bem-sucedido
+      setEmail('');
+      setPassword('');
     } catch (e: any) {
       toast({ title: 'Erro no cadastro', description: e.message, variant: 'destructive' });
     } finally {

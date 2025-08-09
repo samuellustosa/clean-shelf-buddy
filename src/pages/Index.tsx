@@ -41,6 +41,7 @@ const Index = () => {
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const handleCreateEquipment = () => {
     setEditingEquipment(null);
@@ -78,9 +79,11 @@ const Index = () => {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
+      setUserEmail(session?.user?.email ?? null);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
+      setUserEmail(session?.user?.email ?? null);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -108,15 +111,20 @@ const Index = () => {
                 <Link to="/auth">Entrar</Link>
               </Button>
             ) : (
-              <Button
-                variant="outline"
-                onClick={async () => {
-                  await supabase.auth.signOut();
-                  toast({ title: 'Você saiu.' });
-                }}
-              >
-                Sair
-              </Button>
+              <>
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  Conectado: {userEmail ?? 'Usuário'}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    await supabase.auth.signOut();
+                    toast({ title: 'Você saiu.' });
+                  }}
+                >
+                  Sair
+                </Button>
+              </>
             )}
             <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
