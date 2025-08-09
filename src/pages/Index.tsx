@@ -102,7 +102,7 @@ const Index = () => {
               Checklist de Limpeza
             </h1>
             <p className="text-muted-foreground mt-2">
-              Controle de limpeza de equipamentos do supermercado
+              Controle de limpeza '-'<br /> Larga de problema siow
             </p>
           </div>
           <div className="flex items-center gap-2">
