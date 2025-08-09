@@ -5,8 +5,8 @@ import { getEquipmentStatus, getDaysUntilNextCleaning } from '@/utils/equipmentU
 export const useEquipmentFilters = (equipment: Equipment[]) => {
   const [filters, setFilters] = useState<EquipmentFilters>({
     status: 'all',
-    sector: '',
-    responsible: '',
+    sector: 'all',
+    responsible: 'all',
     searchTerm: '',
     daysRange: {}
   });
@@ -20,12 +20,12 @@ export const useEquipmentFilters = (equipment: Equipment[]) => {
       }
 
       // Sector filter
-      if (filters.sector && item.sector !== filters.sector) {
+      if (filters.sector && filters.sector !== 'all' && item.sector !== filters.sector) {
         return false;
       }
 
       // Responsible filter
-      if (filters.responsible && item.responsible !== filters.responsible) {
+      if (filters.responsible && filters.responsible !== 'all' && item.responsible !== filters.responsible) {
         return false;
       }
 
@@ -65,8 +65,8 @@ export const useEquipmentFilters = (equipment: Equipment[]) => {
   const clearFilters = () => {
     setFilters({
       status: 'all',
-      sector: '',
-      responsible: '',
+      sector: 'all',
+      responsible: 'all',
       searchTerm: '',
       daysRange: {}
     });

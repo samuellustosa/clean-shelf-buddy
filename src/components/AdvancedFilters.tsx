@@ -115,14 +115,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               <div className="space-y-2">
                 <Label>Setor</Label>
                 <Select 
-                  value={filters.sector || ''}
+                  value={filters.sector || 'all'}
                   onValueChange={(value) => handleFilterChange('sector', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos os setores" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {uniqueSectors.map(sector => (
                       <SelectItem key={sector} value={sector}>
                         {sector}
@@ -136,14 +136,14 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               <div className="space-y-2">
                 <Label>Responsável</Label>
                 <Select 
-                  value={filters.responsible || ''}
+                  value={filters.responsible || 'all'}
                   onValueChange={(value) => handleFilterChange('responsible', value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Todos os responsáveis" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="all">Todos</SelectItem>
                     {uniqueResponsibles.map(responsible => (
                       <SelectItem key={responsible} value={responsible}>
                         {responsible}
