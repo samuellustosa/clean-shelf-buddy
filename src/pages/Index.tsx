@@ -25,8 +25,7 @@ const Index = () => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-    totalItems,
-  } = useEquipment(currentPage - 1, itemsPerPage);
+  } = useEquipment();
 
   const {
     filters,
@@ -48,7 +47,13 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
+  const totalItems = filteredEquipment.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const paginatedEquipment = filteredEquipment.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleCreateEquipment = () => {
     setEditingEquipment(null);
@@ -155,7 +160,7 @@ const Index = () => {
         ) : (
           <>
             <EquipmentTable
-              equipment={filteredEquipment}
+              equipment={paginatedEquipment}
               onEdit={handleEditEquipment}
               onDelete={handleDeleteEquipment}
               onMarkCleaned={handleMarkCleaned}

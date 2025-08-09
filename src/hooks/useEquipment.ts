@@ -4,33 +4,27 @@ import { Equipment, CleaningHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useEquipment = (page = 0, itemsPerPage = 10) => {
+export const useEquipment = () => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
-  const [totalItems, setTotalItems] = useState(0); // Novo estado para a contagem total
   const { toast } = useToast();
 
   useEffect(() => {
     fetchEquipment();
     fetchHistory();
-  }, [page, itemsPerPage]); // Adicione as dependências de paginação
+  }, []);
 
   const fetchEquipment = async () => {
     setLoading(true);
     try {
-      const start = page * itemsPerPage;
-      const end = start + itemsPerPage - 1;
-
-      const { data, error, count } = await supabase
+      const { data, error } = await supabase
         .from('equipment')
-        .select('*', { count: 'exact' }) // Adicione a contagem total
-        .order('created_at', { ascending: false })
-        .range(start, end); // Limite a busca apenas para a página atual
+        .select('*')
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       setEquipment(data || []);
-      setTotalItems(count || 0);
     } catch (error) {
       console.error('Error fetching equipment:', error);
       toast({
@@ -43,8 +37,6 @@ export const useEquipment = (page = 0, itemsPerPage = 10) => {
     }
   };
   
-  // As outras funções (fetchHistory, addEquipment, etc.) permanecem as mesmas
-  // ...
   const fetchHistory = async () => {
     try {
       const { data, error } = await supabase
@@ -150,7 +142,6 @@ export const useEquipment = (page = 0, itemsPerPage = 10) => {
     try {
       const today = new Date().toISOString().split('T')[0];
       
-      // Update equipment's last_cleaning date
       const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment')
         .update({ last_cleaning: today })
@@ -160,7 +151,6 @@ export const useEquipment = (page = 0, itemsPerPage = 10) => {
 
       if (equipmentError) throw equipmentError;
 
-      // Add to cleaning history
       const { data: historyData, error: historyError } = await supabase
         .from('cleaning_history')
         .insert([{
@@ -204,15 +194,11 @@ export const useEquipment = (page = 0, itemsPerPage = 10) => {
     equipment,
     history,
     loading,
-    totalItems, // Retorne a contagem total
     addEquipment,
     updateEquipment,
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-    refetch: () => {
-      fetchEquipment();
-      fetchHistory();
-    }
+    refetch: fetchEquipment
   };
 };
