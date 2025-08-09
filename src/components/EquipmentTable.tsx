@@ -73,7 +73,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
           {equipment.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                Nenhum equipamento cadastrado
+                Nenhum equipamento encontrado!
               </TableCell>
             </TableRow>
           ) : (

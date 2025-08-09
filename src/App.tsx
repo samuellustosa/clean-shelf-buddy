@@ -7,6 +7,7 @@ import { Suspense, lazy } from "react";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { ThemeProvider } from "next-themes";
 
 const Auth = lazy(() => import("./pages/Auth"));
 
@@ -15,20 +16,21 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Suspense fallback={<div className="p-4">Carregando…</div>}>
-          <Routes>
-            <Route element={<ProtectedRoute />}>
-              <Route path="/" element={<Index />} />
-            </Route>
-            <Route path="/auth" element={<Auth />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<div className="p-4">Carregando…</div>}>
+            <Routes>
+              <Route element={<ProtectedRoute />}>
+                <Route path="/" element={<Index />} />
+              </Route>
+              <Route path="/auth" element={<Auth />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </ThemeProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

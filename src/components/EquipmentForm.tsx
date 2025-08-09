@@ -19,6 +19,12 @@ interface EquipmentFormProps {
   mode: 'create' | 'edit';
 }
 
+// Função para obter a data local no formato YYYY-MM-DD
+const getLocalDateISO = () => {
+  const tzoffset = (new Date()).getTimezoneOffset() * 60000; // offset em milissegundos
+  return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+};
+
 export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   isOpen,
   onClose,
@@ -31,20 +37,29 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     sector: '',
     responsible: '',
     periodicity: 7,
-    last_cleaning: new Date().toISOString().split('T')[0]
+    last_cleaning: getLocalDateISO()
   });
 
   useEffect(() => {
-    if (equipment) {
+    if (mode === 'edit' && equipment) {
       setFormData({
         name: equipment.name,
         sector: equipment.sector,
         responsible: equipment.responsible,
         periodicity: equipment.periodicity,
-        last_cleaning: equipment.last_cleaning || new Date().toISOString().split('T')[0]
+        last_cleaning: equipment.last_cleaning || getLocalDateISO()
+      });
+    } else if (mode === 'create') {
+      // Reseta o formulário para o estado inicial quando o modo é 'create'
+      setFormData({
+        name: '',
+        sector: '',
+        responsible: '',
+        periodicity: 7,
+        last_cleaning: getLocalDateISO()
       });
     }
-  }, [equipment]);
+  }, [equipment, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,13 +68,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       last_cleaning: formData.last_cleaning
     });
     onClose();
-    setFormData({
-      name: '',
-      sector: '',
-      responsible: '',
-      periodicity: 7,
-      last_cleaning: new Date().toISOString().split('T')[0]
-    });
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,7 +93,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               id="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Ex: Autoclave A1"
+              placeholder="Ex: PDV 00"
               required
             />
           </div>
@@ -96,7 +104,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               id="sector"
               value={formData.sector}
               onChange={handleChange}
-              placeholder="Ex: Laboratório"
+              placeholder="Ex: SALA CPD"
               required
             />
           </div>
@@ -107,7 +115,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               id="responsible"
               value={formData.responsible}
               onChange={handleChange}
-              placeholder="Ex: João Silva"
+              placeholder="Ex: Fulano da silva"
               required
             />
           </div>

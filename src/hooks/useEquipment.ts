@@ -1,30 +1,36 @@
+// src/hooks/useEquipment.ts
 import { useState, useEffect } from 'react';
 import { Equipment, CleaningHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useEquipment = () => {
+export const useEquipment = (page = 0, itemsPerPage = 10) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [totalItems, setTotalItems] = useState(0); // Novo estado para a contagem total
   const { toast } = useToast();
 
-  // Load data from Supabase on mount
   useEffect(() => {
     fetchEquipment();
     fetchHistory();
-  }, []);
+  }, [page, itemsPerPage]); // Adicione as dependências de paginação
 
   const fetchEquipment = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const start = page * itemsPerPage;
+      const end = start + itemsPerPage - 1;
+
+      const { data, error, count } = await supabase
         .from('equipment')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .select('*', { count: 'exact' }) // Adicione a contagem total
+        .order('created_at', { ascending: false })
+        .range(start, end); // Limite a busca apenas para a página atual
 
       if (error) throw error;
       setEquipment(data || []);
+      setTotalItems(count || 0);
     } catch (error) {
       console.error('Error fetching equipment:', error);
       toast({
@@ -36,7 +42,9 @@ export const useEquipment = () => {
       setLoading(false);
     }
   };
-
+  
+  // As outras funções (fetchHistory, addEquipment, etc.) permanecem as mesmas
+  // ...
   const fetchHistory = async () => {
     try {
       const { data, error } = await supabase
@@ -196,6 +204,7 @@ export const useEquipment = () => {
     equipment,
     history,
     loading,
+    totalItems, // Retorne a contagem total
     addEquipment,
     updateEquipment,
     deleteEquipment,

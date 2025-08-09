@@ -7,12 +7,16 @@ import { EquipmentForm } from '@/components/EquipmentForm';
 import { HistoryModal } from '@/components/HistoryModal';
 import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Button } from '@/components/ui/button';
+import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationLink, PaginationEllipsis, PaginationNext } from '@/components/ui/pagination';
 import { Plus, ClipboardList } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+  
   const {
     equipment,
     loading,
@@ -21,7 +25,8 @@ const Index = () => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-  } = useEquipment();
+    totalItems,
+  } = useEquipment(currentPage - 1, itemsPerPage);
 
   const {
     filters,
@@ -42,6 +47,8 @@ const Index = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
 
   const handleCreateEquipment = () => {
     setEditingEquipment(null);
@@ -99,10 +106,10 @@ const Index = () => {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <ClipboardList className="h-8 w-8 text-primary" />
-              Checklist de Limpeza
+              CONTROLE DE LIMPEZA
             </h1>
             <p className="text-muted-foreground mt-2">
-              Controle de limpeza '-'<br /> Larga de problema siow
+               CENTRO DE PROCESSAMENTO DE DADOS'-'<br /> Larga de problema siow
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -116,7 +123,7 @@ const Index = () => {
                   Conectado: {userEmail ?? 'Usuário'}
                 </span>
                 <Button
-                  variant="outline"
+                  variant="destructive"
                   onClick={async () => {
                     await supabase.auth.signOut();
                     toast({ title: 'Você saiu.' });
@@ -142,15 +149,46 @@ const Index = () => {
           isOpen={isFiltersOpen}
           onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
         />
+        
+        {loading ? (
+            <div className="text-center py-8">Carregando equipamentos...</div>
+        ) : (
+          <>
+            <EquipmentTable
+              equipment={filteredEquipment}
+              onEdit={handleEditEquipment}
+              onDelete={handleDeleteEquipment}
+              onMarkCleaned={handleMarkCleaned}
+              onViewHistory={handleViewHistory}
+            />
 
-        <EquipmentTable
-          equipment={filteredEquipment}
-          onEdit={handleEditEquipment}
-          onDelete={handleDeleteEquipment}
-          onMarkCleaned={handleMarkCleaned}
-          onViewHistory={handleViewHistory}
-        />
-
+            {totalPages > 1 && (
+              <div className="mt-4 flex justify-center">
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} />
+                    </PaginationItem>
+                    {[...Array(totalPages)].map((_, index) => (
+                      <PaginationItem key={index}>
+                        <PaginationLink 
+                          onClick={() => setCurrentPage(index + 1)}
+                          isActive={currentPage === index + 1}
+                        >
+                          {index + 1}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    <PaginationItem>
+                      <PaginationNext onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
+        )}
+        
         <EquipmentForm
           isOpen={isFormOpen}
           onClose={() => setIsFormOpen(false)}
