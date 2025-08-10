@@ -6,9 +6,11 @@ import { EquipmentTable } from '@/components/EquipmentTable';
 import { EquipmentForm } from '@/components/EquipmentForm';
 import { HistoryModal } from '@/components/HistoryModal';
 import { AdvancedFilters } from '@/components/AdvancedFilters';
+import { Dashboard } from '@/components/Dashboard';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationLink, PaginationEllipsis, PaginationNext } from '@/components/ui/pagination';
-import { Plus, ClipboardList } from 'lucide-react';
+import { Plus, ClipboardList, LayoutDashboard } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,10 +21,11 @@ const Index = () => {
   
   const {
     equipment,
+    allEquipment,
     loading,
     totalItems,
-    uniqueSectors, // Novo estado
-    uniqueResponsibles, // Novo estado
+    uniqueSectors,
+    uniqueResponsibles,
     addEquipment,
     updateEquipment,
     deleteEquipment,
@@ -47,6 +50,7 @@ const Index = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("table"); // Estado para controlar a aba ativa
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const paginatedEquipment = filteredEquipment;
@@ -113,82 +117,102 @@ const Index = () => {
                CENTRO DE PROCESSAMENTO DE DADOS'-'<br /> Larga de problema siow
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            {!isAuthenticated ? (
-              <Button variant="outline" asChild>
-                <Link to="/auth">Entrar</Link>
-              </Button>
-            ) : (
-              <>
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  Conectado: {userEmail ?? 'Usuário'}
-                </span>
-                <Button
-                  variant="destructive"
-                  onClick={async () => {
-                    await supabase.auth.signOut();
-                    toast({ title: 'Você saiu.' });
-                  }}
-                >
-                  Sair
+          {/* Renderização condicional dos botões */}
+          {activeTab === 'table' && (
+            <div className="flex items-center gap-2">
+              {!isAuthenticated ? (
+                <Button variant="outline" asChild>
+                  <Link to="/auth">Entrar</Link>
                 </Button>
-              </>
-            )}
-            <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Novo Equipamento
-            </Button>
-          </div>
+              ) : (
+                <>
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    Conectado: {userEmail ?? 'Usuário'}
+                  </span>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      await supabase.auth.signOut();
+                      toast({ title: 'Você saiu.' });
+                    }}
+                  >
+                    Sair
+                  </Button>
+                </>
+              )}
+              <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Equipamento
+              </Button>
+            </div>
+          )}
         </div>
 
-        <AdvancedFilters
-          filters={filters}
-          setFilters={setFilters}
-          uniqueSectors={uniqueSectors}
-          uniqueResponsibles={uniqueResponsibles}
-          clearFilters={clearFilters}
-          isOpen={isFiltersOpen}
-          onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
-        />
-        
-        {loading ? (
-            <div className="text-center py-8">Carregando equipamentos...</div>
-        ) : (
-          <>
-            <EquipmentTable
-              equipment={paginatedEquipment}
-              onEdit={handleEditEquipment}
-              onDelete={handleDeleteEquipment}
-              onMarkCleaned={handleMarkCleaned}
-              onViewHistory={handleViewHistory}
+        <Tabs defaultValue="table" value={activeTab} onValueChange={setActiveTab}>
+          <div className="flex justify-between items-center mb-4">
+            <TabsList>
+              <TabsTrigger value="table" className="flex items-center gap-2">
+                <ClipboardList className="h-4 w-4" /> Tabela
+              </TabsTrigger>
+              <TabsTrigger value="dashboard" className="flex items-center gap-2">
+                <LayoutDashboard className="h-4 w-4" /> Dashboard
+              </TabsTrigger>
+            </TabsList>
+          </div>
+          <TabsContent value="table">
+            <AdvancedFilters
+              filters={filters}
+              setFilters={setFilters}
+              uniqueSectors={uniqueSectors}
+              uniqueResponsibles={uniqueResponsibles}
+              clearFilters={clearFilters}
+              isOpen={isFiltersOpen}
+              onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
             />
+            
+            {loading ? (
+                <div className="text-center py-8">Carregando equipamentos...</div>
+            ) : (
+              <>
+                <EquipmentTable
+                  equipment={paginatedEquipment}
+                  onEdit={handleEditEquipment}
+                  onDelete={handleDeleteEquipment}
+                  onMarkCleaned={handleMarkCleaned}
+                  onViewHistory={handleViewHistory}
+                />
 
-            {totalPages > 1 && (
-              <div className="mt-4 flex justify-center">
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} />
-                    </PaginationItem>
-                    {[...Array(totalPages)].map((_, index) => (
-                      <PaginationItem key={index}>
-                        <PaginationLink 
-                          onClick={() => setCurrentPage(index + 1)}
-                          isActive={currentPage === index + 1}
-                        >
-                          {index + 1}
-                        </PaginationLink>
-                      </PaginationItem>
-                    ))}
-                    <PaginationItem>
-                      <PaginationNext onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </div>
+                {totalPages > 1 && (
+                  <div className="mt-4 flex justify-center">
+                    <Pagination>
+                      <PaginationContent>
+                        <PaginationItem>
+                          <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} />
+                        </PaginationItem>
+                        {[...Array(totalPages)].map((_, index) => (
+                          <PaginationItem key={index}>
+                            <PaginationLink 
+                              onClick={() => setCurrentPage(index + 1)}
+                              isActive={currentPage === index + 1}
+                            >
+                              {index + 1}
+                            </PaginationLink>
+                          </PaginationItem>
+                        ))}
+                        <PaginationItem>
+                          <PaginationNext onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} />
+                        </PaginationItem>
+                      </PaginationContent>
+                    </Pagination>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
+          </TabsContent>
+          <TabsContent value="dashboard">
+            <Dashboard equipment={allEquipment} />
+          </TabsContent>
+        </Tabs>
         
         <EquipmentForm
           isOpen={isFormOpen}

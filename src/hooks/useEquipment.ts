@@ -1,4 +1,3 @@
-// src/hooks/useEquipment.ts
 import { useState, useEffect } from 'react';
 import { Equipment, CleaningHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,6 +5,7 @@ import { useToast } from '@/hooks/use-toast';
 
 export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]); // Novo estado
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
@@ -19,6 +19,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
+      // Primeiro, obtenha a contagem total de itens para a paginação
       const { count } = await supabase
         .from('equipment')
         .select('*', { count: 'exact', head: true });
@@ -27,6 +28,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         setTotalItems(count);
       }
 
+      // Em seguida, obtenha apenas os itens da página atual
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
@@ -47,9 +49,21 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     }
   };
 
+  const fetchAllEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('equipment')
+        .select('*');
+
+      if (error) throw error;
+      setAllEquipment(data || []);
+    } catch (error) {
+      console.error('Error fetching all equipment:', error);
+    }
+  };
+
   const fetchUniqueValues = async () => {
     try {
-      // Fetch all unique sectors
       const { data: sectorsData, error: sectorsError } = await supabase
         .from('equipment')
         .select('sector')
@@ -59,7 +73,6 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       const uniqueSectorsArray = Array.from(new Set(sectorsData.map(item => item.sector))).sort();
       setUniqueSectors(uniqueSectorsArray);
 
-      // Fetch all unique responsibles
       const { data: responsiblesData, error: responsiblesError } = await supabase
         .from('equipment')
         .select('responsible')
@@ -91,7 +104,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   useEffect(() => {
     fetchEquipment(currentPage, itemsPerPage);
     fetchHistory();
-    fetchUniqueValues(); // Busca os valores de filtro separadamente
+    fetchUniqueValues();
+    fetchAllEquipment(); // Chamar a nova função para o dashboard
   }, [currentPage, itemsPerPage]);
 
   const addEquipment = async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
@@ -110,7 +124,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         title: "Sucesso",
         description: "Equipamento adicionado com sucesso"
       });
-      fetchUniqueValues(); // Atualiza a lista de filtros após a adição
+      fetchUniqueValues();
+      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error adding equipment:', error);
       toast({
@@ -140,7 +155,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         title: "Sucesso",
         description: "Equipamento atualizado com sucesso"
       });
-      fetchUniqueValues(); // Atualiza a lista de filtros após a atualização
+      fetchUniqueValues();
+      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error updating equipment:', error);
       toast({
@@ -170,7 +186,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         title: "Sucesso",
         description: "Equipamento removido com sucesso"
       });
-      fetchUniqueValues(); // Atualiza a lista de filtros após a exclusão
+      fetchUniqueValues();
+      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error deleting equipment:', error);
       toast({
@@ -218,6 +235,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         title: "Sucesso",
         description: "Limpeza registrada com sucesso"
       });
+      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error marking as cleaned:', error);
       toast({
@@ -238,6 +256,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
   return {
     equipment,
+    allEquipment, // Retorne a lista completa
     history,
     loading,
     totalItems,
