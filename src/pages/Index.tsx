@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 35;
   
   const {
     equipment,
@@ -110,11 +110,10 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
-              <ClipboardList className="h-8 w-8 text-primary" />
               CONTROLE DE LIMPEZA
             </h1>
             <p className="text-muted-foreground mt-2">
-               CENTRO DE PROCESSAMENTO DE DADOS'-'<br /> Larga de problema siow
+               CENTRO DE PROCESSAMENTO DE DADOS
             </p>
           </div>
           {/* Renderização condicional dos botões */}

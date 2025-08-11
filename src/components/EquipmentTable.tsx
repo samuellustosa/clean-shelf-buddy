@@ -38,6 +38,12 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
           Em dia ({daysUntil > 0 ? `${daysUntil} dias` : 'hoje'})
         </Badge>
       );
+    } else if (status === 'warning') {
+      return (
+        <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">
+          Prazo finalizando ({daysUntil === 1 ? '1 dia' : 'hoje'})
+        </Badge>
+      );
     } else {
       return (
         <Badge className="bg-destructive hover:bg-destructive/80 text-destructive-foreground">
@@ -50,23 +56,23 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   const getRowClassName = (equipment: Equipment) => {
     const status = getEquipmentStatus(equipment);
     return cn(
-      "transition-colors hover:bg-muted/50",
-      status === 'ok' ? "bg-success/5" : "bg-destructive/5"
+      "transition-colors hover:bg-muted/50 border-b border-gray-500",
+      status === 'ok' ? "bg-success/15" : status === 'warning' ? "bg-warning/15" : "bg-destructive/15"
     );
   };
 
   return (
-    <div className="border rounded-lg">
+    <div className="border rounded-lg font-semibold">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Equipamento</TableHead>
-            <TableHead>Setor</TableHead>
-            <TableHead>Responsável</TableHead>
-            <TableHead>Periodicidade</TableHead>
-            <TableHead>Última Limpeza</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
+            <TableHead className="font-bold">Equipamento</TableHead>
+            <TableHead className="font-bold">Setor</TableHead>
+            <TableHead className="font-bold">Responsável</TableHead>
+            <TableHead className="font-bold">Periodicidade</TableHead>
+            <TableHead className="font-bold">Última Limpeza</TableHead>
+            <TableHead className="font-bold">Status</TableHead>
+            <TableHead className="text-right font-bold">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -79,7 +85,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
           ) : (
             equipment.map((item) => (
               <TableRow key={item.id} className={getRowClassName(item)}>
-                <TableCell className="font-medium">{item.name}</TableCell>
+                <TableCell className="font-bold">{item.name}</TableCell>
                 <TableCell>{item.sector}</TableCell>
                 <TableCell className="text-muted-foreground">{item.responsible}</TableCell>
                 <TableCell>{item.periodicity} dias</TableCell>

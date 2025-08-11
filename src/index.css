@@ -29,13 +29,13 @@ All colors MUST be HSL.
     --accent: 220 13% 95%;
     --accent-foreground: 220 13% 18%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 45%; /* Valor mais forte para o tema claro */
     --destructive-foreground: 0 0% 100%;
 
-    --success: 142 76% 36%;
+    --success: 142 90% 30%; /* Valor mais forte para o tema claro */
     --success-foreground: 0 0% 100%;
     
-    --warning: 45 93% 47%;
+    --warning: 45 100% 40%; /* Valor mais forte para o tema claro */
     --warning-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
@@ -83,8 +83,14 @@ All colors MUST be HSL.
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 80% 40%; /* Valor mais forte para o tema escuro */
     --destructive-foreground: 210 40% 98%;
+
+    --success: 142 90% 30%; /* Valor mais forte para o tema escuro */
+    --success-foreground: 0 0% 100%;
+    
+    --warning: 45 100% 40%; /* Valor mais forte para o tema escuro */
+    --warning-foreground: 0 0% 100%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;

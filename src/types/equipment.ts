@@ -28,4 +28,4 @@ export interface EquipmentFilters {
   };
 }
 
-export type EquipmentStatus = 'ok' | 'overdue';
+export type EquipmentStatus = 'ok' | 'overdue' | 'warning';
