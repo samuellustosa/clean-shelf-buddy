@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EquipmentFilters, EquipmentStatus } from '@/types/equipment';
-import { X, Filter } from 'lucide-react';
+import { X, Filter, RotateCcw } from 'lucide-react';
 
 interface AdvancedFiltersProps {
   filters: EquipmentFilters;
@@ -16,6 +16,7 @@ interface AdvancedFiltersProps {
   clearFilters: () => void;
   isOpen: boolean;
   onToggle: () => void;
+  onReload: () => void;
 }
 
 export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
@@ -25,7 +26,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   uniqueResponsibles,
   clearFilters,
   isOpen,
-  onToggle
+  onToggle,
+  onReload
 }) => {
   const handleFilterChange = (key: keyof EquipmentFilters, value: any) => {
     setFilters({ ...filters, [key]: value });
@@ -53,26 +55,39 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
+        {/* Grupo de botões à esquerda */}
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            onClick={onToggle}
+            className="flex items-center gap-2"
+          >
+            <Filter className="h-4 w-4" />
+            Filtros Avançados
+            {activeFiltersCount > 0 && (
+              <Badge variant="secondary" className="ml-2">
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+          
+          {activeFiltersCount > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              <X className="h-4 w-4 mr-1" />
+              Limpar Filtros
+            </Button>
+          )}
+        </div>
+        
+        {/* Botão de recarregar à direita */}
         <Button 
-          variant="outline" 
-          onClick={onToggle}
+          variant="outline"
+          onClick={onReload}
           className="flex items-center gap-2"
         >
-          <Filter className="h-4 w-4" />
-          Filtros Avançados
-          {activeFiltersCount > 0 && (
-            <Badge variant="secondary" className="ml-2">
-              {activeFiltersCount}
-            </Badge>
-          )}
+          <RotateCcw className="h-4 w-4" />
+          Recarregar
         </Button>
-        
-        {activeFiltersCount > 0 && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
-            Limpar Filtros
-          </Button>
-        )}
       </div>
 
       {isOpen && (

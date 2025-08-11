@@ -167,6 +167,7 @@ const Index = () => {
               clearFilters={clearFilters}
               isOpen={isFiltersOpen}
               onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
+              onReload={() => window.location.reload()}
             />
             
             {loading ? (
