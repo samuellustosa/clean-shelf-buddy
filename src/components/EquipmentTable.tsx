@@ -57,7 +57,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     const status = getEquipmentStatus(equipment);
     return cn(
       "transition-colors hover:bg-muted/50 border-b border-gray-500",
-      status === 'ok' ? "bg-success/5" : status === 'warning' ? "bg-warning/40" : "bg-destructive/40"
+      status === 'ok' ? "bg-success/15" : status === 'warning' ? "bg-warning/40" : "bg-destructive/40"
     );
   };
 
@@ -88,7 +88,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                 <TableCell className="font-bold">{item.name}</TableCell>
                 <TableCell>{item.sector}</TableCell>
                 <TableCell>
-                  <span className={cn("inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground font-bold")}>
+                  <span className={cn("inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground font-bold")}>
                     {item.responsible}
                   </span>
                 </TableCell>
