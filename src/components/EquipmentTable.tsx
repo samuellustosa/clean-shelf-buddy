@@ -41,7 +41,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     } else if (status === 'warning') {
       return (
         <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">
-          Aviso ({daysUntil === 1 ? '1 dia' : 'hoje'})
+          Prazo finalizando (1 dia)
         </Badge>
       );
     } else {
@@ -57,7 +57,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     const status = getEquipmentStatus(equipment);
     return cn(
       "transition-colors hover:bg-muted/50 border-b border-gray-500",
-      status === 'ok' ? "bg-success/20" : status === 'warning' ? "bg-warning/20" : "bg-destructive/20"
+      status === 'ok' ? "bg-success/5" : status === 'warning' ? "bg-warning/40" : "bg-destructive/40"
     );
   };
 

@@ -19,7 +19,10 @@ export const getEquipmentStatus = (equipment: Equipment): EquipmentStatus => {
   if (daysUntil < 0) {
     return 'overdue';
   }
-  if (daysUntil <= 1) {
+  if (daysUntil === 0) {
+    return 'overdue';
+  }
+  if (daysUntil === 1) {
     return 'warning';
   }
   return 'ok';
