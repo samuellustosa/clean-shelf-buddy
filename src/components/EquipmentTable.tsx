@@ -41,7 +41,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     } else if (status === 'warning') {
       return (
         <Badge className="bg-warning hover:bg-warning/80 text-warning-foreground">
-          Prazo finalizando ({daysUntil === 1 ? '1 dia' : 'hoje'})
+          Aviso ({daysUntil === 1 ? '1 dia' : 'hoje'})
         </Badge>
       );
     } else {
@@ -57,7 +57,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
     const status = getEquipmentStatus(equipment);
     return cn(
       "transition-colors hover:bg-muted/50 border-b border-gray-500",
-      status === 'ok' ? "bg-success/15" : status === 'warning' ? "bg-warning/15" : "bg-destructive/15"
+      status === 'ok' ? "bg-success/20" : status === 'warning' ? "bg-warning/20" : "bg-destructive/20"
     );
   };
 
@@ -87,7 +87,11 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
               <TableRow key={item.id} className={getRowClassName(item)}>
                 <TableCell className="font-bold">{item.name}</TableCell>
                 <TableCell>{item.sector}</TableCell>
-                <TableCell className="text-muted-foreground">{item.responsible}</TableCell>
+                <TableCell>
+                  <span className={cn("inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground font-bold")}>
+                    {item.responsible}
+                  </span>
+                </TableCell>
                 <TableCell>{item.periodicity} dias</TableCell>
                 <TableCell>{formatDate(item.last_cleaning)}</TableCell>
                 <TableCell>{getStatusBadge(item)}</TableCell>

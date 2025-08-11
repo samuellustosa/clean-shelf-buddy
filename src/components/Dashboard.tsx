@@ -22,14 +22,15 @@ interface DashboardProps {
 
 const COLORS_PIE = {
   ok: 'hsl(var(--success))',
+  warning: 'hsl(var(--warning))',
   overdue: 'hsl(var(--destructive))',
 };
 
 export const Dashboard: React.FC<DashboardProps> = ({ equipment }) => {
   const chartData = useMemo(() => {
-    const statusCount: { ok: number; overdue: number } = { ok: 0, overdue: 0 };
+    const statusCount: { ok: number; warning: number; overdue: number } = { ok: 0, warning: 0, overdue: 0 };
     const sectorCount: { [key: string]: number } = {};
-    const responsibleStatusCount: { [key: string]: { ok: number; overdue: number } } = {};
+    const responsibleStatusCount: { [key: string]: { ok: number; warning: number; overdue: number } } = {};
 
     equipment.forEach((item) => {
       const status = getEquipmentStatus(item);
@@ -38,15 +39,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ equipment }) => {
       sectorCount[item.sector] = (sectorCount[item.sector] || 0) + 1;
 
       if (!responsibleStatusCount[item.responsible]) {
-        responsibleStatusCount[item.responsible] = { ok: 0, overdue: 0 };
+        responsibleStatusCount[item.responsible] = { ok: 0, warning: 0, overdue: 0 };
       }
       responsibleStatusCount[item.responsible][status]++;
     });
 
-    const pieData = Object.entries(statusCount).map(([name, value]) => ({
-      name: name === 'ok' ? 'Em dia' : 'Atrasado',
-      value,
-    }));
+    const pieData = [
+      { name: 'Em dia', value: statusCount.ok },
+      { name: 'Aviso', value: statusCount.warning },
+      { name: 'Atrasado', value: statusCount.overdue },
+    ].filter(entry => entry.value > 0);
 
     const barDataSector = Object.entries(sectorCount).map(([sector, count]) => ({
       name: sector,
@@ -56,6 +58,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ equipment }) => {
     const barDataResponsible = Object.entries(responsibleStatusCount).map(([responsible, statusCounts]) => ({
       name: responsible,
       'Em dia': statusCounts.ok,
+      'Aviso': statusCounts.warning,
       'Atrasado': statusCounts.overdue,
     }));
 
@@ -79,13 +82,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ equipment }) => {
                 cy="50%"
                 outerRadius={100}
                 fill="#8884d8"
-                label={({ name, value }) => `${name}: ${value}`}
+                label={({ name, value }) => value > 0 ? `${name}: ${value}` : ''}
                 style={{ fontSize: '10px' }}
               >
                 {chartData.pieData.map((entry, index) => (
                   <Cell
                     key={`cell-${index}`}
-                    fill={COLORS_PIE[entry.name === 'Em dia' ? 'ok' : 'overdue']}
+                    fill={COLORS_PIE[entry.name === 'Em dia' ? 'ok' : entry.name === 'Aviso' ? 'warning' : 'overdue']}
                   />
                 ))}
               </Pie>
@@ -127,6 +130,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ equipment }) => {
               <Tooltip />
               <Legend />
               <Bar dataKey="Em dia" stackId="a" fill="hsl(var(--success))" />
+              <Bar dataKey="Aviso" stackId="a" fill="hsl(var(--warning))" />
               <Bar dataKey="Atrasado" stackId="a" fill="hsl(var(--destructive))" />
             </BarChart>
           </ResponsiveContainer>
