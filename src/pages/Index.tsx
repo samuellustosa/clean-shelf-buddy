@@ -10,10 +10,18 @@ import { Dashboard } from '@/components/Dashboard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationLink, PaginationEllipsis, PaginationNext } from '@/components/ui/pagination';
-import { Plus, ClipboardList, LayoutDashboard } from 'lucide-react';
+import { Plus, ClipboardList, LayoutDashboard, MoreHorizontal, LogOut, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from '@/components/ui/dropdown-menu';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,6 +49,7 @@ const Index = () => {
   } = useEquipmentFilters(equipment);
 
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -50,7 +59,7 @@ const Index = () => {
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState("table"); // Estado para controlar a aba ativa
+  const [activeTab, setActiveTab] = useState("table");
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const paginatedEquipment = filteredEquipment;
@@ -104,47 +113,96 @@ const Index = () => {
     ? getEquipmentHistory(selectedEquipment.id)
     : [];
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({ title: 'Você saiu.' });
+  };
+
+  const renderAuthButtons = () => {
+    if (isAuthenticated) {
+      return (
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground hidden lg:inline">
+            Conectado: {userEmail ?? 'Usuário'}
+          </span>
+          <Button onClick={handleLogout}>
+            Sair
+          </Button>
+        </div>
+      );
+    } else {
+      return (
+        <Button asChild>
+          <Link to="/auth">Entrar</Link>
+        </Button>
+      );
+    }
+  };
+
+  const renderDropdownMenu = () => {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="icon">
+            <MoreHorizontal className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {isAuthenticated ? (
+            <>
+              <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Novo Equipamento
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem disabled>
+                Conectado: {userEmail ?? 'Usuário'}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
+                <LogOut className="h-4 w-4" /> Sair
+              </DropdownMenuItem>
+            </>
+          ) : (
+            <DropdownMenuItem asChild>
+              <Link to="/auth" className="flex items-center gap-2">
+                <LogIn className="h-4 w-4" /> Entrar
+              </Link>
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              CONTROLE DE LIMPEZA
-            </h1>
-            <p className="text-muted-foreground mt-2">
-               CENTRO DE PROCESSAMENTO DE DADOS
-            </p>
+            {isMobile ? (
+              <h1 className="text-xl font-bold flex items-center gap-2">
+                CONTROLE DE LIMPEZA - CPD
+              </h1>
+            ) : (
+              <>
+                <h1 className="text-3xl font-bold flex items-center gap-2">
+                  CONTROLE DE LIMPEZA
+                </h1>
+                <p className="text-muted-foreground mt-2">
+                   CENTRO DE PROCESSAMENTO DE DADOS
+                </p>
+              </>
+            )}
           </div>
-          {/* Renderização condicional dos botões */}
-          {activeTab === 'table' && (
-            <div className="flex items-center gap-2">
-              {!isAuthenticated ? (
-                <Button variant="outline" asChild>
-                  <Link to="/auth">Entrar</Link>
-                </Button>
-              ) : (
-                <>
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    Conectado: {userEmail ?? 'Usuário'}
-                  </span>
-                  <Button
-                    variant="destructive"
-                    onClick={async () => {
-                      await supabase.auth.signOut();
-                      toast({ title: 'Você saiu.' });
-                    }}
-                  >
-                    Sair
-                  </Button>
-                </>
-              )}
+          <div className="flex items-center gap-4">
+            {!isMobile && isAuthenticated && activeTab === 'table' && (
               <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Novo Equipamento
               </Button>
-            </div>
-          )}
+            )}
+            {!isMobile && renderAuthButtons()}
+            {isMobile && renderDropdownMenu()}
+          </div>
         </div>
 
         <Tabs defaultValue="table" value={activeTab} onValueChange={setActiveTab}>

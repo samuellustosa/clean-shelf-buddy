@@ -8,7 +8,6 @@ import { useToast } from '@/hooks/use-toast';
 import { useNavigate, Link } from 'react-router-dom';
 
 const AuthPage = () => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,8 +15,8 @@ const AuthPage = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = mode === 'login' ? 'Login | Checklist de Limpeza' : 'Criar conta | Checklist de Limpeza';
-  }, [mode]);
+    document.title = 'Login | Checklist de Limpeza';
+  }, []);
 
   // Redireciona para a home se já estiver autenticado
   useEffect(() => {
@@ -55,8 +54,6 @@ const AuthPage = () => {
       });
       if (error) throw error;
       toast({ title: 'Verifique seu e-mail', description: 'Enviamos um link de confirmação.' });
-      setMode('login');
-      // Limpa os campos após cadastro bem-sucedido
       setEmail('');
       setPassword('');
     } catch (e: any) {
@@ -71,7 +68,7 @@ const AuthPage = () => {
       <div className="container mx-auto px-4 py-10 max-w-md">
         <Card>
           <CardHeader>
-            <CardTitle>{mode === 'login' ? 'Entrar' : 'Criar conta'}</CardTitle>
+            <CardTitle>Entrar</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -83,29 +80,7 @@ const AuthPage = () => {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Sua senha" />
             </div>
 
-            {mode === 'login' ? (
-              <Button className="w-full" onClick={handleLogin} disabled={loading}>Entrar</Button>
-            ) : (
-              <Button className="w-full" onClick={handleSignup} disabled={loading}>Criar conta</Button>
-            )}
-
-            <div className="text-sm text-muted-foreground text-center">
-              {mode === 'login' ? (
-                <span>
-                  Não possui conta?{' '}
-                  <button className="underline" onClick={() => setMode('signup')}>Criar conta</button>
-                </span>
-              ) : (
-                <span>
-                  Já possui conta?{' '}
-                  <button className="underline" onClick={() => setMode('login')}>Entrar</button>
-                </span>
-              )}
-            </div>
-
-            <div className="text-center">
-              <Link to="/" className="underline">Voltar para o início</Link>
-            </div>
+            <Button className="w-full" onClick={handleLogin} disabled={loading}>Entrar</Button>
           </CardContent>
         </Card>
       </div>

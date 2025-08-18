@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Equipment, CleaningHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
-  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]); // Novo estado
+  const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [totalItems, setTotalItems] = useState(0);
@@ -13,13 +13,12 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
   const { toast } = useToast();
 
-  const fetchEquipment = async (page: number, pageSize: number) => {
+  const fetchEquipment = useCallback(async (page: number, pageSize: number) => {
     setLoading(true);
     try {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // Primeiro, obtenha a contagem total de itens para a paginação
       const { count } = await supabase
         .from('equipment')
         .select('*', { count: 'exact', head: true });
@@ -28,7 +27,6 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         setTotalItems(count);
       }
 
-      // Em seguida, obtenha apenas os itens da página atual
       const { data, error } = await supabase
         .from('equipment')
         .select('*')
@@ -47,9 +45,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const fetchAllEquipment = async () => {
+  const fetchAllEquipment = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('equipment')
@@ -60,9 +58,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching all equipment:', error);
     }
-  };
+  }, []);
 
-  const fetchUniqueValues = async () => {
+  const fetchUniqueValues = useCallback(async () => {
     try {
       const { data: sectorsData, error: sectorsError } = await supabase
         .from('equipment')
@@ -85,9 +83,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching unique values:', error);
     }
-  };
+  }, []);
   
-  const fetchHistory = async () => {
+  const fetchHistory = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from('cleaning_history')
@@ -99,16 +97,16 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching history:', error);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchEquipment(currentPage, itemsPerPage);
     fetchHistory();
     fetchUniqueValues();
-    fetchAllEquipment(); // Chamar a nova função para o dashboard
-  }, [currentPage, itemsPerPage]);
+    fetchAllEquipment();
+  }, [currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment]);
 
-  const addEquipment = async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
+  const addEquipment = useCallback(async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -120,12 +118,13 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       if (error) throw error;
 
       setEquipment(prev => [data, ...prev]);
+      setAllEquipment(prev => [data, ...prev]);
+      setTotalItems(prev => prev + 1);
       toast({
         title: "Sucesso",
         description: "Equipamento adicionado com sucesso"
       });
       fetchUniqueValues();
-      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error adding equipment:', error);
       toast({
@@ -136,9 +135,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchUniqueValues, toast]);
 
-  const updateEquipment = async (id: string, updates: Partial<Equipment>) => {
+  const updateEquipment = useCallback(async (id: string, updates: Partial<Equipment>) => {
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -151,12 +150,12 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       if (error) throw error;
 
       setEquipment(prev => prev.map(item => item.id === id ? data : item));
+      setAllEquipment(prev => prev.map(item => item.id === id ? data : item));
       toast({
         title: "Sucesso",
         description: "Equipamento atualizado com sucesso"
       });
       fetchUniqueValues();
-      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error updating equipment:', error);
       toast({
@@ -167,9 +166,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchUniqueValues, toast]);
 
-  const deleteEquipment = async (id: string) => {
+  const deleteEquipment = useCallback(async (id: string) => {
     setLoading(true);
     try {
       const { error } = await supabase
@@ -180,14 +179,15 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       if (error) throw error;
 
       setEquipment(prev => prev.filter(item => item.id !== id));
+      setAllEquipment(prev => prev.filter(item => item.id !== id));
       setHistory(prev => prev.filter(item => item.equipment_id !== id));
+      setTotalItems(prev => Math.max(0, prev - 1));
       
       toast({
         title: "Sucesso",
         description: "Equipamento removido com sucesso"
       });
       fetchUniqueValues();
-      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error deleting equipment:', error);
       toast({
@@ -198,9 +198,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [fetchUniqueValues, toast]);
 
-  const markAsCleaned = async (equipmentId: string) => {
+  const markAsCleaned = useCallback(async (equipmentId: string) => {
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -226,7 +226,11 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
       if (historyError) throw historyError;
 
+      // Atualiza o estado local sem recarregar a página
       setEquipment(prev => prev.map(item => 
+        item.id === equipmentId ? equipmentData : item
+      ));
+      setAllEquipment(prev => prev.map(item => 
         item.id === equipmentId ? equipmentData : item
       ));
       setHistory(prev => [historyData, ...prev]);
@@ -235,7 +239,6 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
         title: "Sucesso",
         description: "Limpeza registrada com sucesso"
       });
-      fetchAllEquipment(); // Atualizar o dashboard
     } catch (error) {
       console.error('Error marking as cleaned:', error);
       toast({
@@ -246,7 +249,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   const getEquipmentHistory = (equipmentId: string): CleaningHistory[] => {
     return history
@@ -256,7 +259,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
   return {
     equipment,
-    allEquipment, // Retorne a lista completa
+    allEquipment,
     history,
     loading,
     totalItems,
@@ -267,6 +270,11 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-    refetch: fetchEquipment
+    refetch: () => {
+      fetchEquipment(currentPage, itemsPerPage);
+      fetchHistory();
+      fetchAllEquipment();
+      fetchUniqueValues();
+    }
   };
 };

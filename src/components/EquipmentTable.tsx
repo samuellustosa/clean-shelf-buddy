@@ -10,8 +10,21 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Pencil, Trash2, CheckCircle, Eye } from 'lucide-react';
+import { Pencil, Trash2, CheckCircle, Eye, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { EquipmentCard } from './EquipmentCard';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 interface EquipmentTableProps {
   equipment: Equipment[];
@@ -28,6 +41,8 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   onMarkCleaned,
   onViewHistory,
 }) => {
+  const isMobile = useIsMobile();
+
   const getStatusBadge = (equipment: Equipment) => {
     const status = getEquipmentStatus(equipment);
     const daysUntil = getDaysUntilNextCleaning(equipment);
@@ -62,78 +77,139 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   };
 
   return (
-    <div className="border rounded-lg font-semibold">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="font-bold">Equipamento</TableHead>
-            <TableHead className="font-bold">Setor</TableHead>
-            <TableHead className="font-bold">Responsável</TableHead>
-            <TableHead className="font-bold">Periodicidade</TableHead>
-            <TableHead className="font-bold">Última Limpeza</TableHead>
-            <TableHead className="font-bold">Status</TableHead>
-            <TableHead className="text-right font-bold">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <>
+      {isMobile ? (
+        <div className="space-y-4">
           {equipment.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                Nenhum equipamento encontrado!
-              </TableCell>
-            </TableRow>
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum equipamento encontrado!
+            </div>
           ) : (
             equipment.map((item) => (
-              <TableRow key={item.id} className={getRowClassName(item)}>
-                <TableCell className="font-bold">{item.name}</TableCell>
-                <TableCell>{item.sector}</TableCell>
-                <TableCell>
-                  <span className={cn("inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground font-bold")}>
-                    {item.responsible}
-                  </span>
-                </TableCell>
-                <TableCell>{item.periodicity} dias</TableCell>
-                <TableCell>{formatDate(item.last_cleaning)}</TableCell>
-                <TableCell>{getStatusBadge(item)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onMarkCleaned(item.id)}
-                      className="bg-success hover:bg-success/80 text-success-foreground border-success"
-                    >
-                      <CheckCircle className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onViewHistory(item)}
-                    >
-                      <Eye className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onEdit(item)}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => onDelete(item.id)}
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
+              <EquipmentCard 
+                key={item.id} 
+                equipment={item} 
+                onEdit={onEdit} 
+                onDelete={onDelete} 
+                onMarkCleaned={onMarkCleaned} 
+                onViewHistory={onViewHistory} 
+              />
             ))
           )}
-        </TableBody>
-      </Table>
-    </div>
+        </div>
+      ) : (
+        <div className="border rounded-lg font-semibold">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-bold">Equipamento</TableHead>
+                <TableHead className="font-bold">Setor</TableHead>
+                <TableHead className="font-bold">Responsável</TableHead>
+                <TableHead className="font-bold">Periodicidade</TableHead>
+                <TableHead className="font-bold">Última Limpeza</TableHead>
+                <TableHead className="font-bold">Status</TableHead>
+                <TableHead className="text-right font-bold">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {equipment.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    Nenhum equipamento encontrado!
+                  </TableCell>
+                </TableRow>
+              ) : (
+                equipment.map((item) => (
+                  <TableRow key={item.id} className={getRowClassName(item)}>
+                    <TableCell className="font-bold">{item.name}</TableCell>
+                    <TableCell>{item.sector}</TableCell>
+                    <TableCell>
+                      <span className={cn("inline-flex items-center rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground font-bold")}>
+                        {item.responsible}
+                      </span>
+                    </TableCell>
+                    <TableCell>{item.periodicity} dias</TableCell>
+                    <TableCell>{formatDate(item.last_cleaning)}</TableCell>
+                    <TableCell>{getStatusBadge(item)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        {/* Botão de Marcar como Limpo com Confirmação */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="bg-success hover:bg-success/80 text-success-foreground border-success"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Limpeza</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Você tem certeza que deseja marcar "{item.name}" como limpo? Esta ação irá registrar a data de hoje como a última limpeza.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => onMarkCleaned(item.id)}>Confirmar</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onViewHistory(item)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onEdit(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {/* Botão de Deletar com Confirmação */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso irá remover permanentemente o equipamento "{item.name}" e todo o seu histórico de limpeza.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction 
+                                onClick={() => onDelete(item.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Continuar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
   );
 };

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EquipmentFilters, EquipmentStatus } from '@/types/equipment';
 import { X, Filter, RotateCcw } from 'lucide-react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AdvancedFiltersProps {
   filters: EquipmentFilters;
@@ -29,6 +31,8 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
   onToggle,
   onReload
 }) => {
+  const isMobile = useIsMobile();
+
   const handleFilterChange = (key: keyof EquipmentFilters, value: any) => {
     setFilters({ ...filters, [key]: value });
   };
@@ -52,10 +56,116 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     return false;
   }).length;
 
+  const filterContent = (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {/* Search Term */}
+        <div className="space-y-2">
+          <Label htmlFor="search">Buscar</Label>
+          <Input
+            id="search"
+            placeholder="Nome, setor ou responsável..."
+            value={filters.searchTerm || ''}
+            onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+          />
+        </div>
+
+        {/* Status Filter */}
+        <div className="space-y-2">
+          <Label>Status</Label>
+          <Select 
+            value={filters.status || 'all'}
+            onValueChange={(value) => handleFilterChange('status', value as EquipmentStatus | 'all')}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="ok">Em dia</SelectItem>
+              <SelectItem value="overdue">Atrasado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Sector Filter */}
+        <div className="space-y-2">
+          <Label>Setor</Label>
+          <Select 
+            value={filters.sector || 'all'}
+            onValueChange={(value) => handleFilterChange('sector', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os setores" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {uniqueSectors.map(sector => (
+                <SelectItem key={sector} value={sector}>
+                  {sector}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Responsible Filter */}
+        <div className="space-y-2">
+          <Label>Responsável</Label>
+          <Select 
+            value={filters.responsible || 'all'}
+            onValueChange={(value) => handleFilterChange('responsible', value)}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Todos os responsáveis" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              {uniqueResponsibles.map(responsible => (
+                <SelectItem key={responsible} value={responsible}>
+                  {responsible}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Days Range Min */}
+        <div className="space-y-2">
+          <Label htmlFor="daysMin">Dias mínimos até limpeza</Label>
+          <Input
+            id="daysMin"
+            type="number"
+            placeholder="Mínimo"
+            value={filters.daysRange?.min || ''}
+            onChange={(e) => handleDaysRangeChange('min', e.target.value)}
+          />
+        </div>
+
+        {/* Days Range Max */}
+        <div className="space-y-2">
+          <Label htmlFor="daysMax">Dias máximos até limpeza</Label>
+          <Input
+            id="daysMax"
+            type="number"
+            placeholder="Máximo"
+            value={filters.daysRange?.max || ''}
+            onChange={(e) => handleDaysRangeChange('max', e.target.value)}
+          />
+        </div>
+      </div>
+      {activeFiltersCount > 0 && (
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="w-full mt-4">
+          <X className="h-4 w-4 mr-1" />
+          Limpar Filtros
+        </Button>
+      )}
+    </div>
+  );
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        {/* Grupo de botões à esquerda */}
         <div className="flex items-center gap-2">
           <Button 
             variant="outline" 
@@ -71,7 +181,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             )}
           </Button>
           
-          {activeFiltersCount > 0 && (
+          {!isMobile && activeFiltersCount > 0 && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               <X className="h-4 w-4 mr-1" />
               Limpar Filtros
@@ -79,7 +189,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
           )}
         </div>
         
-        {/* Botão de recarregar à direita */}
         <Button 
           variant="outline"
           onClick={onReload}
@@ -90,110 +199,28 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
         </Button>
       </div>
 
-      {isOpen && (
+      {isOpen && !isMobile && (
         <Card>
           <CardHeader>
             <CardTitle>Filtros Avançados</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {/* Search Term */}
-              <div className="space-y-2">
-                <Label htmlFor="search">Buscar</Label>
-                <Input
-                  id="search"
-                  placeholder="Nome, setor ou responsável..."
-                  value={filters.searchTerm || ''}
-                  onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
-                />
-              </div>
-
-              {/* Status Filter */}
-              <div className="space-y-2">
-                <Label>Status</Label>
-                <Select 
-                  value={filters.status || 'all'}
-                  onValueChange={(value) => handleFilterChange('status', value as EquipmentStatus | 'all')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    <SelectItem value="ok">Em dia</SelectItem>
-                    <SelectItem value="overdue">Atrasado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Sector Filter */}
-              <div className="space-y-2">
-                <Label>Setor</Label>
-                <Select 
-                  value={filters.sector || 'all'}
-                  onValueChange={(value) => handleFilterChange('sector', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os setores" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {uniqueSectors.map(sector => (
-                      <SelectItem key={sector} value={sector}>
-                        {sector}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Responsible Filter */}
-              <div className="space-y-2">
-                <Label>Responsável</Label>
-                <Select 
-                  value={filters.responsible || 'all'}
-                  onValueChange={(value) => handleFilterChange('responsible', value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Todos os responsáveis" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos</SelectItem>
-                    {uniqueResponsibles.map(responsible => (
-                      <SelectItem key={responsible} value={responsible}>
-                        {responsible}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Days Range Min */}
-              <div className="space-y-2">
-                <Label htmlFor="daysMin">Dias mínimos até limpeza</Label>
-                <Input
-                  id="daysMin"
-                  type="number"
-                  placeholder="Mínimo"
-                  value={filters.daysRange?.min || ''}
-                  onChange={(e) => handleDaysRangeChange('min', e.target.value)}
-                />
-              </div>
-
-              {/* Days Range Max */}
-              <div className="space-y-2">
-                <Label htmlFor="daysMax">Dias máximos até limpeza</Label>
-                <Input
-                  id="daysMax"
-                  type="number"
-                  placeholder="Máximo"
-                  value={filters.daysRange?.max || ''}
-                  onChange={(e) => handleDaysRangeChange('max', e.target.value)}
-                />
-              </div>
-            </div>
+            {filterContent}
           </CardContent>
         </Card>
+      )}
+
+      {isMobile && (
+        <Sheet open={isOpen} onOpenChange={onToggle}>
+          <SheetContent side="left" className="w-full overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Filtros Avançados</SheetTitle>
+            </SheetHeader>
+            <div className="py-4">
+              {filterContent}
+            </div>
+          </SheetContent>
+        </Sheet>
       )}
     </div>
   );
