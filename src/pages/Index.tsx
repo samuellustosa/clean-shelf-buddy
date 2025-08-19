@@ -278,6 +278,8 @@ const Index = () => {
           onSubmit={handleSubmitEquipment}
           equipment={editingEquipment}
           mode={formMode}
+          uniqueSectors={uniqueSectors}
+          uniqueResponsibles={uniqueResponsibles}
         />
 
         <HistoryModal

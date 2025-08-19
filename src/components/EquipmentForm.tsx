@@ -9,6 +9,13 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { Equipment } from '@/types/equipment';
 
 interface EquipmentFormProps {
@@ -17,6 +24,8 @@ interface EquipmentFormProps {
   onSubmit: (equipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => void;
   equipment?: Equipment;
   mode: 'create' | 'edit';
+  uniqueSectors: string[];
+  uniqueResponsibles: string[];
 }
 
 // Função para obter a data local no formato YYYY-MM-DD
@@ -31,6 +40,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   onSubmit,
   equipment,
   mode,
+  uniqueSectors,
+  uniqueResponsibles,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -50,7 +61,6 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         last_cleaning: equipment.last_cleaning || getLocalDateISO()
       });
     } else if (mode === 'create') {
-      // Reseta o formulário para o estado inicial quando o modo é 'create'
       setFormData({
         name: '',
         sector: '',
@@ -77,6 +87,13 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       [id]: id === 'periodicity' ? parseInt(value) || 0 : value
     }));
   };
+  
+  const handleSelectChange = (key: 'sector' | 'responsible', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -100,24 +117,36 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           
           <div className="space-y-2">
             <Label htmlFor="sector">Setor</Label>
-            <Input
-              id="sector"
+            <Select
               value={formData.sector}
-              onChange={handleChange}
-              placeholder="Ex: SALA CPD"
-              required
-            />
+              onValueChange={(value) => handleSelectChange('sector', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um setor" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueSectors.map(sector => (
+                  <SelectItem key={sector} value={sector}>{sector}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
             <Label htmlFor="responsible">Responsável</Label>
-            <Input
-              id="responsible"
+            <Select
               value={formData.responsible}
-              onChange={handleChange}
-              placeholder="Ex: Fulano da silva"
-              required
-            />
+              onValueChange={(value) => handleSelectChange('responsible', value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um responsável" />
+              </SelectTrigger>
+              <SelectContent>
+                {uniqueResponsibles.map(responsible => (
+                  <SelectItem key={responsible} value={responsible}>{responsible}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <div className="space-y-2">
