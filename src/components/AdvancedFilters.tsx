@@ -37,17 +37,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
     setFilters({ ...filters, [key]: value });
   };
 
-  const handleDaysRangeChange = (type: 'min' | 'max', value: string) => {
-    const numValue = value === '' ? undefined : parseInt(value);
-    setFilters({
-      ...filters,
-      daysRange: {
-        ...filters.daysRange,
-        [type]: numValue
-      }
-    });
-  };
-
   const activeFiltersCount = Object.values(filters).filter(value => {
     if (typeof value === 'string') return value !== '' && value !== 'all';
     if (typeof value === 'object' && value !== null) {
@@ -128,30 +117,6 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
               ))}
             </SelectContent>
           </Select>
-        </div>
-
-        {/* Days Range Min */}
-        <div className="space-y-2">
-          <Label htmlFor="daysMin">Dias mínimos até limpeza</Label>
-          <Input
-            id="daysMin"
-            type="number"
-            placeholder="Mínimo"
-            value={filters.daysRange?.min || ''}
-            onChange={(e) => handleDaysRangeChange('min', e.target.value)}
-          />
-        </div>
-
-        {/* Days Range Max */}
-        <div className="space-y-2">
-          <Label htmlFor="daysMax">Dias máximos até limpeza</Label>
-          <Input
-            id="daysMax"
-            type="number"
-            placeholder="Máximo"
-            value={filters.daysRange?.max || ''}
-            onChange={(e) => handleDaysRangeChange('max', e.target.value)}
-          />
         </div>
       </div>
       {activeFiltersCount > 0 && (

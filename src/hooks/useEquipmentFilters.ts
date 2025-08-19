@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Equipment, EquipmentFilters } from '@/types/equipment';
-import { getEquipmentStatus, getDaysUntilNextCleaning } from '@/utils/equipmentUtils';
+import { getEquipmentStatus } from '@/utils/equipmentUtils';
 
 export const useEquipmentFilters = (equipment: Equipment[]) => {
   const [filters, setFilters] = useState<EquipmentFilters>({
@@ -8,7 +8,6 @@ export const useEquipmentFilters = (equipment: Equipment[]) => {
     sector: 'all',
     responsible: 'all',
     searchTerm: '',
-    daysRange: {}
   });
 
   const filteredEquipment = useMemo(() => {
@@ -39,17 +38,6 @@ export const useEquipmentFilters = (equipment: Equipment[]) => {
         }
       }
 
-      // Days range filter
-      if (filters.daysRange?.min !== undefined || filters.daysRange?.max !== undefined) {
-        const daysUntilNext = getDaysUntilNextCleaning(item);
-        if (filters.daysRange.min !== undefined && daysUntilNext < filters.daysRange.min) {
-          return false;
-        }
-        if (filters.daysRange.max !== undefined && daysUntilNext > filters.daysRange.max) {
-          return false;
-        }
-      }
-
       return true;
     });
   }, [equipment, filters]);
@@ -68,7 +56,6 @@ export const useEquipmentFilters = (equipment: Equipment[]) => {
       sector: 'all',
       responsible: 'all',
       searchTerm: '',
-      daysRange: {}
     });
   };
 

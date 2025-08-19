@@ -22,10 +22,6 @@ export interface EquipmentFilters {
   sector?: string;
   responsible?: string;
   searchTerm?: string;
-  daysRange?: {
-    min?: number;
-    max?: number;
-  };
 }
 
 export type EquipmentStatus = 'ok' | 'overdue' | 'warning';
