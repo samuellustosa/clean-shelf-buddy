@@ -97,14 +97,26 @@ const Index = () => {
     setIsHistoryOpen(true);
   };
 
+  // Nova função para fechar e resetar o formulário
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setEditingEquipment(null);
+    setFormMode('create');
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
       setUserEmail(session?.user?.email ?? null);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
-      setUserEmail(session?.user?.email ?? null);
+      if (session) {
+        setIsAuthenticated(true);
+        setUserEmail(session.user?.email ?? null);
+      } else {
+        setIsAuthenticated(false);
+        setUserEmail(null);
+      }
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -274,7 +286,7 @@ const Index = () => {
         
         <EquipmentForm
           isOpen={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
+          onClose={handleCloseForm}
           onSubmit={handleSubmitEquipment}
           equipment={editingEquipment}
           mode={formMode}

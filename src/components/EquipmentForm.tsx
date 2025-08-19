@@ -60,7 +60,8 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         periodicity: equipment.periodicity,
         last_cleaning: equipment.last_cleaning || getLocalDateISO()
       });
-    } else if (mode === 'create') {
+    } else if (mode === 'create' && isOpen) {
+      // Reseta o formulário para o estado inicial quando o modo é 'create'
       setFormData({
         name: '',
         sector: '',
@@ -69,7 +70,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
         last_cleaning: getLocalDateISO()
       });
     }
-  }, [equipment, mode]);
+  }, [equipment, mode, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
