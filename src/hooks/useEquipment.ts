@@ -1,5 +1,6 @@
+// src/hooks/useEquipment.ts
 import { useState, useEffect, useCallback } from 'react';
-import { Equipment, CleaningHistory } from '@/types/equipment';
+import { Equipment, CleaningHistory, UserProfile } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -11,6 +12,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [totalItems, setTotalItems] = useState(0);
   const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
   const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<UserProfile['role'] | null>(null);
   const { toast } = useToast();
 
   const fetchEquipment = useCallback(async (page: number, pageSize: number) => {
@@ -19,6 +21,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
+      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { count } = await supabase
         .from('equipment')
         .select('*', { count: 'exact', head: true });
@@ -49,6 +52,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
   const fetchAllEquipment = useCallback(async () => {
     try {
+      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data, error } = await supabase
         .from('equipment')
         .select('*');
@@ -62,15 +66,17 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
   const fetchUniqueValues = useCallback(async () => {
     try {
+      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data: sectorsData, error: sectorsError } = await supabase
         .from('equipment')
         .select('sector')
-        .limit(1000); 
+        .limit(1000);
 
       if (sectorsError) throw sectorsError;
       const uniqueSectorsArray = Array.from(new Set(sectorsData.map(item => item.sector))).sort();
       setUniqueSectors(uniqueSectorsArray);
 
+      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data: responsiblesData, error: responsiblesError } = await supabase
         .from('equipment')
         .select('responsible')
@@ -87,6 +93,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   
   const fetchHistory = useCallback(async () => {
     try {
+      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data, error } = await supabase
         .from('cleaning_history')
         .select('*')
@@ -99,13 +106,38 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     }
   }, []);
 
+  // Novo fetch para o papel do usuário
+  const fetchUserRole = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        setUserRole(data?.role as UserProfile['role']);
+      } else {
+        setUserRole(null);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar o papel do usuário:', error);
+      // Defina o papel como 'user' ou null em caso de erro
+      setUserRole('user');
+    }
+  }, []);
+
   useEffect(() => {
     fetchEquipment(currentPage, itemsPerPage);
     fetchHistory();
     fetchUniqueValues();
     fetchAllEquipment();
-  }, [currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment]);
+    fetchUserRole(); // Chame a nova função ao carregar o componente
+  }, [currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment, fetchUserRole]);
 
+  // Funções de CRUD permanecem as mesmas
   const addEquipment = useCallback(async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
     setLoading(true);
     try {
@@ -226,7 +258,6 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
 
       if (historyError) throw historyError;
 
-      // Atualiza o estado local sem recarregar a página
       setEquipment(prev => prev.map(item => 
         item.id === equipmentId ? equipmentData : item
       ));
@@ -270,11 +301,13 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
+    userRole, // Retorne o papel do usuário
     refetch: () => {
       fetchEquipment(currentPage, itemsPerPage);
       fetchHistory();
       fetchAllEquipment();
       fetchUniqueValues();
+      fetchUserRole();
     }
   };
 };

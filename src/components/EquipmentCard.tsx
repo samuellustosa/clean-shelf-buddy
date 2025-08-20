@@ -16,6 +16,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface EquipmentCardProps {
   equipment: Equipment;
@@ -23,6 +24,7 @@ interface EquipmentCardProps {
   onDelete: (id: string) => void;
   onMarkCleaned: (id: string) => void;
   onViewHistory: (equipment: Equipment) => void;
+  userRole: string | null; // Nova prop
 }
 
 export const EquipmentCard: React.FC<EquipmentCardProps> = ({
@@ -31,9 +33,35 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   onDelete,
   onMarkCleaned,
   onViewHistory,
+  userRole,
 }) => {
   const status = getEquipmentStatus(equipment);
   const daysUntil = getDaysUntilNextCleaning(equipment);
+  const { toast } = useToast();
+
+  const handleEditClick = () => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem editar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onEdit(equipment);
+  };
+
+  const handleDeleteClick = () => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem deletar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onDelete(equipment.id);
+  };
 
   const getStatusBadge = () => {
     if (status === 'ok') {
@@ -90,7 +118,6 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
           </p>
         </div>
         <div className="flex justify-between gap-2 mt-4">
-          {/* Botão de Marcar como Limpo com Confirmação */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -127,12 +154,11 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={() => onEdit(equipment)}
+            onClick={handleEditClick}
             className="w-full"
           >
             <Pencil className="h-4 w-4 mr-2" /> Editar
           </Button>
-          {/* Botão de Deletar com Confirmação */}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -152,8 +178,8 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={() => onDelete(equipment.id)}
+                <AlertDialogAction
+                  onClick={handleDeleteClick}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Continuar

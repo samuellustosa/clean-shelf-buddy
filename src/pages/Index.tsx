@@ -26,7 +26,7 @@ import {
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 35;
-  
+
   const {
     equipment,
     allEquipment,
@@ -39,6 +39,7 @@ const Index = () => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
+    userRole,
   } = useEquipment(currentPage, itemsPerPage);
 
   const {
@@ -50,7 +51,7 @@ const Index = () => {
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
-  
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -65,12 +66,23 @@ const Index = () => {
   const paginatedEquipment = filteredEquipment;
 
   const handleCreateEquipment = () => {
+    // A verificação de permissão foi removida para esta ação, 
+    // permitindo que qualquer usuário autenticado adicione equipamentos.
+    // O RLS do Supabase garantirá a segurança no backend.
     setEditingEquipment(null);
     setFormMode('create');
     setIsFormOpen(true);
   };
 
   const handleEditEquipment = (equipment: Equipment) => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem editar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     setEditingEquipment(equipment);
     setFormMode('edit');
     setIsFormOpen(true);
@@ -85,6 +97,14 @@ const Index = () => {
   };
 
   const handleDeleteEquipment = (id: string) => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem deletar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     deleteEquipment(id);
   };
 
@@ -97,7 +117,6 @@ const Index = () => {
     setIsHistoryOpen(true);
   };
 
-  // Nova função para fechar e resetar o formulário
   const handleCloseForm = () => {
     setIsFormOpen(false);
     setEditingEquipment(null);
@@ -135,7 +154,7 @@ const Index = () => {
       return (
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground hidden lg:inline">
-            Conectado: {userEmail ?? 'Usuário'}
+            {userRole === 'superuser' ? 'Superusuário' : 'Usuário'}: {userEmail ?? 'Usuário'}
           </span>
           <Button onClick={handleLogout}>
             Sair
@@ -167,7 +186,7 @@ const Index = () => {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled>
-                Conectado: {userEmail ?? 'Usuário'}
+                {userRole === 'superuser' ? 'Superusuário' : 'Usuário'}: {userEmail ?? 'Usuário'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
                 <LogOut className="h-4 w-4" /> Sair
@@ -239,7 +258,7 @@ const Index = () => {
               onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
               onReload={() => window.location.reload()}
             />
-            
+
             {loading ? (
                 <div className="text-center py-8">Carregando equipamentos...</div>
             ) : (
@@ -250,6 +269,7 @@ const Index = () => {
                   onDelete={handleDeleteEquipment}
                   onMarkCleaned={handleMarkCleaned}
                   onViewHistory={handleViewHistory}
+                  userRole={userRole} // Passe o papel do usuário para a tabela
                 />
 
                 {totalPages > 1 && (
@@ -261,7 +281,7 @@ const Index = () => {
                         </PaginationItem>
                         {[...Array(totalPages)].map((_, index) => (
                           <PaginationItem key={index}>
-                            <PaginationLink 
+                            <PaginationLink
                               onClick={() => setCurrentPage(index + 1)}
                               isActive={currentPage === index + 1}
                             >
@@ -283,7 +303,7 @@ const Index = () => {
             <Dashboard equipment={allEquipment} />
           </TabsContent>
         </Tabs>
-        
+
         <EquipmentForm
           isOpen={isFormOpen}
           onClose={handleCloseForm}

@@ -1,3 +1,6 @@
+// src/types/equipment.ts
+// Mantenha o conteúdo existente e adicione a nova interface UserProfile.
+
 export interface Equipment {
   id: string;
   name: string;
@@ -15,6 +18,13 @@ export interface CleaningHistory {
   cleaning_date: string; // ISO date string
   responsible_by: string;
   created_at: string;
+}
+
+// Nova interface para o perfil do usuário
+export interface UserProfile {
+  id: string;
+  full_name: string | null;
+  role: 'user' | 'superuser';
 }
 
 export interface EquipmentFilters {

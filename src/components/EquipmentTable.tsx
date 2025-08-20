@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useToast } from '@/hooks/use-toast';
 
 interface EquipmentTableProps {
   equipment: Equipment[];
@@ -32,6 +33,7 @@ interface EquipmentTableProps {
   onDelete: (id: string) => void;
   onMarkCleaned: (id: string) => void;
   onViewHistory: (equipment: Equipment) => void;
+  userRole: string | null; // Nova prop para o papel do usuário
 }
 
 export const EquipmentTable: React.FC<EquipmentTableProps> = ({
@@ -40,8 +42,34 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   onDelete,
   onMarkCleaned,
   onViewHistory,
+  userRole,
 }) => {
   const isMobile = useIsMobile();
+  const { toast } = useToast();
+
+  const handleEditClick = (item: Equipment) => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem editar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onEdit(item);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    if (userRole !== 'superuser') {
+      toast({
+        title: "Permissão negada",
+        description: "Apenas superusuários podem deletar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onDelete(id);
+  };
 
   const getStatusBadge = (equipment: Equipment) => {
     const status = getEquipmentStatus(equipment);
@@ -89,10 +117,11 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
               <EquipmentCard 
                 key={item.id} 
                 equipment={item} 
-                onEdit={onEdit} 
-                onDelete={onDelete} 
+                onEdit={handleEditClick} 
+                onDelete={handleDeleteClick} 
                 onMarkCleaned={onMarkCleaned} 
                 onViewHistory={onViewHistory} 
+                userRole={userRole} // Passe o papel do usuário para o card
               />
             ))
           )}
@@ -133,8 +162,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                     <TableCell>{getStatusBadge(item)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        {/* Botão de Marcar como Limpo com Confirmação */}
-                        <AlertDialog>
+                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
                               size="sm"
@@ -168,11 +196,10 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => onEdit(item)}
+                          onClick={() => handleEditClick(item)} // Usa a nova função de clique
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {/* Botão de Deletar com Confirmação */}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
@@ -192,8 +219,8 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction 
-                                onClick={() => onDelete(item.id)}
+                              <AlertDialogAction
+                                onClick={() => handleDeleteClick(item.id)} // Usa a nova função de clique
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Continuar
