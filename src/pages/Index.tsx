@@ -22,15 +22,19 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
+import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 
 const Index = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 35;
 
+  const { filters, setFilters, clearFilters } = useEquipmentFilters([]);
+
   const {
     equipment,
     allEquipment,
     loading,
+    allEquipmentLoading,
     totalItems,
     uniqueSectors,
     uniqueResponsibles,
@@ -40,14 +44,8 @@ const Index = () => {
     markAsCleaned,
     getEquipmentHistory,
     userPermissions,
-  } = useEquipment(currentPage, itemsPerPage);
-
-  const {
-    filters,
-    setFilters,
-    filteredEquipment,
-    clearFilters
-  } = useEquipmentFilters(equipment);
+    fetchAllEquipment,
+  } = useEquipment(currentPage, itemsPerPage, filters);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -63,7 +61,7 @@ const Index = () => {
   const [activeTab, setActiveTab] = useState("table");
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const paginatedEquipment = filteredEquipment;
+  const paginatedEquipment = equipment;
 
   const handleCreateEquipment = () => {
     if (!userPermissions?.can_add) {
@@ -135,6 +133,12 @@ const Index = () => {
     setEditingEquipment(null);
     setFormMode('create');
   };
+
+  useEffect(() => {
+    if (activeTab === 'dashboard' && allEquipment.length === 0) {
+      fetchAllEquipment();
+    }
+  }, [activeTab, allEquipment.length, fetchAllEquipment]);
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -340,7 +344,11 @@ const Index = () => {
             )}
           </TabsContent>
           <TabsContent value="dashboard">
-            <Dashboard equipment={allEquipment} />
+            {allEquipmentLoading ? (
+              <DashboardSkeleton />
+            ) : (
+              <Dashboard equipment={allEquipment} />
+            )}
           </TabsContent>
         </Tabs>
 

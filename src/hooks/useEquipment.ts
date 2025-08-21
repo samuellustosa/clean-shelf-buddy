@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Equipment, CleaningHistory, UserProfile } from '@/types/equipment';
+import { Equipment, CleaningHistory, UserProfile, EquipmentFilters } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useEquipment = (currentPage: number, itemsPerPage: number) => {
+export const useEquipment = (currentPage: number, itemsPerPage: number, filters: EquipmentFilters) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [allEquipmentLoading, setAllEquipmentLoading] = useState(false); // Novo estado de carregamento
   const [totalItems, setTotalItems] = useState(0);
   const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
   const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
@@ -31,19 +32,18 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       }
     } catch (error) {
       console.error('Erro ao buscar as permissões do usuário:', error);
-      // CORREÇÃO: Adicionando a nova permissão ao objeto padrão
-      setUserPermissions({ 
-        can_add: false, 
-        can_edit: false, 
-        can_delete: false, 
-        can_view: true, 
+      setUserPermissions({
+        can_add: false,
+        can_edit: false,
+        can_delete: false,
+        can_view: true,
         can_mark_cleaned: false,
-        can_manage_users: false 
+        can_manage_users: false
       });
     }
   }, []);
 
-  const fetchEquipment = useCallback(async (page: number, pageSize: number) => {
+  const fetchEquipment = useCallback(async (page: number, pageSize: number, filters: EquipmentFilters) => {
     if (!userPermissions?.can_view) {
       setEquipment([]);
       setTotalItems(0);
@@ -54,22 +54,32 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      const { count } = await supabase
-        .from('equipment')
-        .select('*', { count: 'exact', head: true });
+      let query = supabase.from('equipment').select('*', { count: 'exact' });
 
-      if (count !== null) {
-        setTotalItems(count);
+      // Apply server-side filters
+      if (filters.searchTerm) {
+        query = query.or(`name.ilike.%${filters.searchTerm}%,sector.ilike.%${filters.searchTerm}%,responsible.ilike.%${filters.searchTerm}%`);
+      }
+      if (filters.status && filters.status !== 'all') {
+        // NOTE: This part needs a more complex query based on the logic in getEquipmentStatus
+        // For now, it's just a placeholder. The status logic needs to be re-implemented in a server function or trigger.
+        // E.g. query = query.filter('last_cleaning', 'lt', new Date(Date.now() - filters.periodicity * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      }
+      if (filters.sector && filters.sector !== 'all') {
+        query = query.eq('sector', filters.sector);
+      }
+      if (filters.responsible && filters.responsible !== 'all') {
+        query = query.eq('responsible', filters.responsible);
       }
 
-      const { data, error } = await supabase
-        .from('equipment')
-        .select('*')
+      const { data, error, count } = await query
         .order('created_at', { ascending: false })
         .range(from, to);
 
       if (error) throw error;
       setEquipment(data || []);
+      setTotalItems(count ?? 0);
+
     } catch (error) {
       console.error('Error fetching equipment:', error);
       toast({
@@ -87,6 +97,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       setAllEquipment([]);
       return;
     }
+    setAllEquipmentLoading(true); // Inicia o carregamento
     try {
       const { data, error } = await supabase
         .from('equipment')
@@ -96,6 +107,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       setAllEquipment(data || []);
     } catch (error) {
       console.error('Error fetching all equipment:', error);
+    } finally {
+      setAllEquipmentLoading(false); // Finaliza o carregamento
     }
   }, [userPermissions]);
 
@@ -147,20 +160,17 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     }
   }, [userPermissions]);
 
-  // Primeiro useEffect para buscar as permissões do usuário
   useEffect(() => {
     fetchUserPermissions();
   }, [fetchUserPermissions]);
 
-  // Segundo useEffect para buscar os equipamentos e histórico APÓS as permissões estarem disponíveis
   useEffect(() => {
     if (userPermissions) {
-      fetchEquipment(currentPage, itemsPerPage);
+      fetchEquipment(currentPage, itemsPerPage, filters);
       fetchHistory();
       fetchUniqueValues();
-      fetchAllEquipment();
     }
-  }, [userPermissions, currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment]);
+  }, [userPermissions, currentPage, itemsPerPage, filters, fetchEquipment, fetchHistory, fetchUniqueValues]);
 
   const addEquipment = useCallback(async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
     if (!userPermissions?.can_add) {
@@ -241,7 +251,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   }, [fetchUniqueValues, toast, userPermissions]);
 
   const deleteEquipment = useCallback(async (id: string) => {
-    if (!userPermissions?.can_delete) {
+      if (!userPermissions?.can_delete) {
       toast({
         title: "Permissão negada",
         description: "Você não tem permissão para remover equipamentos.",
@@ -349,6 +359,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     allEquipment,
     history,
     loading,
+    allEquipmentLoading, // Retornar o novo estado de carregamento
     totalItems,
     uniqueSectors,
     uniqueResponsibles,
@@ -358,8 +369,9 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     markAsCleaned,
     getEquipmentHistory,
     userPermissions,
+    fetchAllEquipment,
     refetch: () => {
-      fetchEquipment(currentPage, itemsPerPage);
+      fetchEquipment(currentPage, itemsPerPage, filters);
       fetchHistory();
       fetchAllEquipment();
       fetchUniqueValues();

@@ -37,3 +37,9 @@ export const formatDate = (dateString: string): string => {
     return dateString;
   }
 };
+
+// Nova função adicionada para obter a data local no formato ISO
+export const getLocalDateISO = () => {
+  const tzoffset = (new Date()).getTimezoneOffset() * 60000; // offset em milissegundos
+  return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+};

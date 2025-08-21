@@ -17,6 +17,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { Equipment } from '@/types/equipment';
+import { getLocalDateISO } from '@/utils/equipmentUtils';
 
 interface EquipmentFormProps {
   isOpen: boolean;
@@ -27,12 +28,6 @@ interface EquipmentFormProps {
   uniqueSectors: string[];
   uniqueResponsibles: string[];
 }
-
-// Função para obter a data local no formato YYYY-MM-DD
-const getLocalDateISO = () => {
-  const tzoffset = (new Date()).getTimezoneOffset() * 60000; // offset em milissegundos
-  return (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
-};
 
 export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   isOpen,
