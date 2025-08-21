@@ -151,7 +151,6 @@ const UserManagementPage = () => {
                   <Select
                     value={user.role}
                     onValueChange={(value) => handleRoleChange(user.id, value as 'user' | 'superuser')}
-                    disabled={user.role === 'superuser'}
                   >
                     <SelectTrigger className="w-[180px] ml-auto">
                       <SelectValue placeholder="Selecione um papel" />
