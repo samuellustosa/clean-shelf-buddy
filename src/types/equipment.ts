@@ -1,6 +1,3 @@
-// src/types/equipment.ts
-// Mantenha o conteúdo existente e adicione a nova interface UserProfile.
-
 export interface Equipment {
   id: string;
   name: string;
@@ -24,7 +21,14 @@ export interface CleaningHistory {
 export interface UserProfile {
   id: string;
   full_name: string | null;
-  role: 'user' | 'superuser';
+  permissions: {
+    can_add: boolean;
+    can_edit: boolean;
+    can_delete: boolean;
+    can_view: boolean;
+    can_mark_cleaned: boolean;
+    can_manage_users: boolean;
+  };
   email: string;
 }
 

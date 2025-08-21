@@ -1,4 +1,4 @@
-import { Equipment } from '@/types/equipment';
+import { Equipment, UserProfile } from '@/types/equipment';
 import { getEquipmentStatus, getDaysUntilNextCleaning, formatDate } from '@/utils/equipmentUtils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,7 +24,7 @@ interface EquipmentCardProps {
   onDelete: (id: string) => void;
   onMarkCleaned: (id: string) => void;
   onViewHistory: (equipment: Equipment) => void;
-  userRole: string | null; // Nova prop
+  userPermissions: UserProfile['permissions'] | null;
 }
 
 export const EquipmentCard: React.FC<EquipmentCardProps> = ({
@@ -33,17 +33,17 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   onDelete,
   onMarkCleaned,
   onViewHistory,
-  userRole,
+  userPermissions,
 }) => {
   const status = getEquipmentStatus(equipment);
   const daysUntil = getDaysUntilNextCleaning(equipment);
   const { toast } = useToast();
 
   const handleEditClick = () => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_edit) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem editar equipamentos.",
+        description: "Você não tem permissão para editar equipamentos.",
         variant: "destructive"
       });
       return;
@@ -52,15 +52,27 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
   };
 
   const handleDeleteClick = () => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_delete) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem deletar equipamentos.",
+        description: "Você não tem permissão para deletar equipamentos.",
         variant: "destructive"
       });
       return;
     }
     onDelete(equipment.id);
+  };
+
+  const handleMarkCleanedClick = () => {
+    if (!userPermissions?.can_mark_cleaned) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para registrar limpezas.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onMarkCleaned(equipment.id);
   };
 
   const getStatusBadge = () => {
@@ -108,14 +120,16 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          <p className="text-sm">
+          {/* Corrigido: substitui o <p> por <div> */}
+          <div className="text-sm">
             <span className="font-bold">Responsável:</span>{' '}
             <Badge variant="secondary" className="font-bold">{equipment.responsible}</Badge>
-          </p>
-          <p className="text-sm">
+          </div>
+          {/* Corrigido: substitui o <p> por <div> */}
+          <div className="text-sm">
             <span className="font-bold">Última Limpeza:</span>{' '}
             {formatDate(equipment.last_cleaning)}
-          </p>
+          </div>
         </div>
         <div className="flex justify-between gap-2 mt-4">
           <AlertDialog>
@@ -124,6 +138,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 size="sm"
                 variant="outline"
                 className="bg-success hover:bg-success/80 text-success-foreground border-success w-full"
+                onClick={handleMarkCleanedClick}
               >
                 <CheckCircle className="h-4 w-4 mr-2" /> Limpar
               </Button>
@@ -154,7 +169,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
           <Button
             size="sm"
             variant="outline"
-            onClick={handleEditClick}
+            onClick={() => handleEditClick()}
             className="w-full"
           >
             <Pencil className="h-4 w-4 mr-2" /> Editar
@@ -165,6 +180,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
                 size="sm"
                 variant="outline"
                 className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-full"
+                onClick={() => handleDeleteClick()}
               >
                 <Trash2 className="h-4 w-4 mr-2" /> Deletar
               </Button>
@@ -179,7 +195,7 @@ export const EquipmentCard: React.FC<EquipmentCardProps> = ({
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
                 <AlertDialogAction
-                  onClick={handleDeleteClick}
+                  onClick={() => onDelete(equipment.id)}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
                   Continuar

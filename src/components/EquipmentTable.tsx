@@ -1,4 +1,4 @@
-import { Equipment } from '@/types/equipment';
+import { Equipment, UserProfile } from '@/types/equipment';
 import { getEquipmentStatus, getDaysUntilNextCleaning, formatDate } from '@/utils/equipmentUtils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -33,7 +33,7 @@ interface EquipmentTableProps {
   onDelete: (id: string) => void;
   onMarkCleaned: (id: string) => void;
   onViewHistory: (equipment: Equipment) => void;
-  userRole: string | null; // Nova prop para o papel do usuário
+  userPermissions: UserProfile['permissions'] | null;
 }
 
 export const EquipmentTable: React.FC<EquipmentTableProps> = ({
@@ -42,16 +42,16 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   onDelete,
   onMarkCleaned,
   onViewHistory,
-  userRole,
+  userPermissions,
 }) => {
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const handleEditClick = (item: Equipment) => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_edit) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem editar equipamentos.",
+        description: "Você não tem permissão para editar equipamentos.",
         variant: "destructive"
       });
       return;
@@ -60,21 +60,33 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
   };
 
   const handleDeleteClick = (id: string) => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_delete) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem deletar equipamentos.",
+        description: "Você não tem permissão para deletar equipamentos.",
         variant: "destructive"
       });
       return;
     }
     onDelete(id);
   };
+  
+  const handleMarkCleanedClick = (id: string) => {
+    if (!userPermissions?.can_add) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para registrar limpezas.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onMarkCleaned(id);
+  };
 
   const getStatusBadge = (equipment: Equipment) => {
     const status = getEquipmentStatus(equipment);
     const daysUntil = getDaysUntilNextCleaning(equipment);
-    
+
     if (status === 'ok') {
       return (
         <Badge className="bg-success hover:bg-success/80 text-success-foreground">
@@ -114,14 +126,14 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
             </div>
           ) : (
             equipment.map((item) => (
-              <EquipmentCard 
-                key={item.id} 
-                equipment={item} 
-                onEdit={handleEditClick} 
-                onDelete={handleDeleteClick} 
-                onMarkCleaned={onMarkCleaned} 
-                onViewHistory={onViewHistory} 
-                userRole={userRole} // Passe o papel do usuário para o card
+              <EquipmentCard
+                key={item.id}
+                equipment={item}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+                onMarkCleaned={handleMarkCleanedClick}
+                onViewHistory={onViewHistory}
+                userPermissions={userPermissions}
               />
             ))
           )}
@@ -162,12 +174,13 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                     <TableCell>{getStatusBadge(item)}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                         <AlertDialog>
+                        <AlertDialog>
                           <AlertDialogTrigger asChild>
                             <Button
                               size="sm"
                               variant="outline"
                               className="bg-success hover:bg-success/80 text-success-foreground border-success"
+                              onClick={() => handleMarkCleanedClick(item.id)}
                             >
                               <CheckCircle className="h-4 w-4" />
                             </Button>
@@ -185,7 +198,6 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        
                         <Button
                           size="sm"
                           variant="outline"
@@ -196,7 +208,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleEditClick(item)} // Usa a nova função de clique
+                          onClick={() => handleEditClick(item)}
                         >
                           <Pencil className="h-4 w-4" />
                         </Button>
@@ -206,6 +218,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                               size="sm"
                               variant="outline"
                               className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => handleDeleteClick(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -220,7 +233,7 @@ export const EquipmentTable: React.FC<EquipmentTableProps> = ({
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => handleDeleteClick(item.id)} // Usa a nova função de clique
+                                onClick={() => handleDeleteClick(item.id)}
                                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                               >
                                 Continuar

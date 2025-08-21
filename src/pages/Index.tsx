@@ -39,7 +39,7 @@ const Index = () => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-    userRole,
+    userPermissions,
   } = useEquipment(currentPage, itemsPerPage);
 
   const {
@@ -66,19 +66,24 @@ const Index = () => {
   const paginatedEquipment = filteredEquipment;
 
   const handleCreateEquipment = () => {
-    // A verificação de permissão foi removida para esta ação, 
-    // permitindo que qualquer usuário autenticado adicione equipamentos.
-    // O RLS do Supabase garantirá a segurança no backend.
+    if (!userPermissions?.can_add) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para adicionar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     setEditingEquipment(null);
     setFormMode('create');
     setIsFormOpen(true);
   };
 
   const handleEditEquipment = (equipment: Equipment) => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_edit) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem editar equipamentos.",
+        description: "Você não tem permissão para editar equipamentos.",
         variant: "destructive"
       });
       return;
@@ -97,10 +102,10 @@ const Index = () => {
   };
 
   const handleDeleteEquipment = (id: string) => {
-    if (userRole !== 'superuser') {
+    if (!userPermissions?.can_delete) {
       toast({
         title: "Permissão negada",
-        description: "Apenas superusuários podem deletar equipamentos.",
+        description: "Você não tem permissão para deletar equipamentos.",
         variant: "destructive"
       });
       return;
@@ -109,6 +114,14 @@ const Index = () => {
   };
 
   const handleMarkCleaned = (id: string) => {
+    if (!userPermissions?.can_add) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para registrar limpezas.",
+        variant: "destructive"
+      });
+      return;
+    }
     markAsCleaned(id);
   };
 
@@ -140,7 +153,7 @@ const Index = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const equipmentHistory = selectedEquipment 
+  const equipmentHistory = selectedEquipment
     ? getEquipmentHistory(selectedEquipment.id)
     : [];
 
@@ -150,31 +163,42 @@ const Index = () => {
   };
 
   const renderAuthButtons = () => {
-    if (isAuthenticated) {
-      return (
-        <div className="flex items-center gap-2">
-          {userRole === 'superuser' && (
-            <Button asChild variant="ghost" className="flex items-center gap-2">
-              <Link to="/admin/users">
-                <Users className="h-4 w-4" /> Gerenciar Usuários
-              </Link>
-            </Button>
-          )}
-          <span className="text-sm text-muted-foreground hidden lg:inline">
-            {userRole === 'superuser' ? 'Superusuário' : 'Usuário'}: {userEmail ?? 'Usuário'}
-          </span>
-          <Button onClick={handleLogout}>
-            Sair
-          </Button>
-        </div>
-      );
-    } else {
+    if (!isAuthenticated) {
       return (
         <Button asChild>
           <Link to="/auth">Entrar</Link>
         </Button>
       );
     }
+
+    let userRoleText = 'Visualizador';
+    if (userPermissions?.can_manage_users) {
+      userRoleText = 'Administrador';
+    } else if (userPermissions?.can_delete) {
+      userRoleText = 'Superusuário';
+    } else if (userPermissions?.can_edit) {
+      userRoleText = 'Editor';
+    } else if (userPermissions?.can_add) {
+      userRoleText = 'Colaborador';
+    }
+
+    return (
+      <div className="flex items-center gap-2">
+        {userPermissions?.can_manage_users && (
+          <Button asChild variant="ghost" className="flex items-center gap-2">
+            <Link to="/admin/users">
+              <Users className="h-4 w-4" /> Gerenciar Usuários
+            </Link>
+          </Button>
+        )}
+        <span className="text-sm text-muted-foreground hidden lg:inline">
+          {userRoleText}: {userEmail ?? 'Usuário'}
+        </span>
+        <Button onClick={handleLogout}>
+          Sair
+        </Button>
+      </div>
+    );
   };
 
   const renderDropdownMenu = () => {
@@ -188,20 +212,21 @@ const Index = () => {
         <DropdownMenuContent align="end">
           {isAuthenticated ? (
             <>
-              {userRole === 'superuser' && (
+              {userPermissions?.can_manage_users && (
                 <DropdownMenuItem asChild>
                   <Link to="/admin/users" className="flex items-center gap-2">
                     <Users className="h-4 w-4" /> Gerenciar Usuários
                   </Link>
                 </DropdownMenuItem>
               )}
-              {userRole === 'superuser' && <DropdownMenuSeparator />}
-              <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Novo Equipamento
-              </DropdownMenuItem>
+              {userPermissions?.can_add && (
+                <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
+                  <Plus className="h-4 w-4" /> Novo Equipamento
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled>
-                {userRole === 'superuser' ? 'Superusuário' : 'Usuário'}: {userEmail ?? 'Usuário'}
+                {userPermissions?.can_manage_users ? 'Administrador' : userPermissions?.can_delete ? 'Superusuário' : userPermissions?.can_edit ? 'Editor' : 'Visualizador'}: {userEmail ?? 'Usuário'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2">
                 <LogOut className="h-4 w-4" /> Sair
@@ -240,7 +265,7 @@ const Index = () => {
             )}
           </div>
           <div className="flex items-center gap-4">
-            {!isMobile && isAuthenticated && activeTab === 'table' && (
+            {!isMobile && isAuthenticated && activeTab === 'table' && userPermissions?.can_add && (
               <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Novo Equipamento
@@ -284,7 +309,7 @@ const Index = () => {
                   onDelete={handleDeleteEquipment}
                   onMarkCleaned={handleMarkCleaned}
                   onViewHistory={handleViewHistory}
-                  userRole={userRole} // Passe o papel do usuário para a tabela
+                  userPermissions={userPermissions}
                 />
 
                 {totalPages > 1 && (

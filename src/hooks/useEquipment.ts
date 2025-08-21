@@ -1,4 +1,3 @@
-// src/hooks/useEquipment.ts
 import { useState, useEffect, useCallback } from 'react';
 import { Equipment, CleaningHistory, UserProfile } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,16 +11,49 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
   const [totalItems, setTotalItems] = useState(0);
   const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
   const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
-  const [userRole, setUserRole] = useState<UserProfile['role'] | null>(null);
+  const [userPermissions, setUserPermissions] = useState<UserProfile['permissions'] | null>(null);
   const { toast } = useToast();
 
+  const fetchUserPermissions = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('permissions')
+          .eq('id', user.id)
+          .single();
+
+        if (error) throw error;
+        setUserPermissions(data?.permissions as UserProfile['permissions']);
+      } else {
+        setUserPermissions(null);
+      }
+    } catch (error) {
+      console.error('Erro ao buscar as permissões do usuário:', error);
+      // CORREÇÃO: Adicionando a nova permissão ao objeto padrão
+      setUserPermissions({ 
+        can_add: false, 
+        can_edit: false, 
+        can_delete: false, 
+        can_view: true, 
+        can_mark_cleaned: false,
+        can_manage_users: false 
+      });
+    }
+  }, []);
+
   const fetchEquipment = useCallback(async (page: number, pageSize: number) => {
+    if (!userPermissions?.can_view) {
+      setEquipment([]);
+      setTotalItems(0);
+      return;
+    }
     setLoading(true);
     try {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
 
-      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { count } = await supabase
         .from('equipment')
         .select('*', { count: 'exact', head: true });
@@ -48,11 +80,14 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, userPermissions]);
 
   const fetchAllEquipment = useCallback(async () => {
+    if (!userPermissions?.can_view) {
+      setAllEquipment([]);
+      return;
+    }
     try {
-      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data, error } = await supabase
         .from('equipment')
         .select('*');
@@ -62,11 +97,15 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching all equipment:', error);
     }
-  }, []);
+  }, [userPermissions]);
 
   const fetchUniqueValues = useCallback(async () => {
+    if (!userPermissions?.can_view) {
+      setUniqueSectors([]);
+      setUniqueResponsibles([]);
+      return;
+    }
     try {
-      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data: sectorsData, error: sectorsError } = await supabase
         .from('equipment')
         .select('sector')
@@ -76,7 +115,6 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
       const uniqueSectorsArray = Array.from(new Set(sectorsData.map(item => item.sector))).sort();
       setUniqueSectors(uniqueSectorsArray);
 
-      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data: responsiblesData, error: responsiblesError } = await supabase
         .from('equipment')
         .select('responsible')
@@ -89,11 +127,14 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching unique values:', error);
     }
-  }, []);
+  }, [userPermissions]);
   
   const fetchHistory = useCallback(async () => {
+    if (!userPermissions?.can_view) {
+      setHistory([]);
+      return;
+    }
     try {
-      // NOTE: A consulta agora respeitará a política de RLS do superusuário
       const { data, error } = await supabase
         .from('cleaning_history')
         .select('*')
@@ -104,41 +145,32 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } catch (error) {
       console.error('Error fetching history:', error);
     }
-  }, []);
+  }, [userPermissions]);
 
-  // Novo fetch para o papel do usuário
-  const fetchUserRole = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-
-        if (error) throw error;
-        setUserRole(data?.role as UserProfile['role']);
-      } else {
-        setUserRole(null);
-      }
-    } catch (error) {
-      console.error('Erro ao buscar o papel do usuário:', error);
-      // Defina o papel como 'user' ou null em caso de erro
-      setUserRole('user');
-    }
-  }, []);
-
+  // Primeiro useEffect para buscar as permissões do usuário
   useEffect(() => {
-    fetchEquipment(currentPage, itemsPerPage);
-    fetchHistory();
-    fetchUniqueValues();
-    fetchAllEquipment();
-    fetchUserRole(); // Chame a nova função ao carregar o componente
-  }, [currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment, fetchUserRole]);
+    fetchUserPermissions();
+  }, [fetchUserPermissions]);
 
-  // Funções de CRUD permanecem as mesmas
+  // Segundo useEffect para buscar os equipamentos e histórico APÓS as permissões estarem disponíveis
+  useEffect(() => {
+    if (userPermissions) {
+      fetchEquipment(currentPage, itemsPerPage);
+      fetchHistory();
+      fetchUniqueValues();
+      fetchAllEquipment();
+    }
+  }, [userPermissions, currentPage, itemsPerPage, fetchEquipment, fetchHistory, fetchUniqueValues, fetchAllEquipment]);
+
   const addEquipment = useCallback(async (newEquipment: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!userPermissions?.can_add) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para adicionar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -167,9 +199,17 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchUniqueValues, toast]);
+  }, [fetchUniqueValues, toast, userPermissions]);
 
   const updateEquipment = useCallback(async (id: string, updates: Partial<Equipment>) => {
+    if (!userPermissions?.can_edit) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para editar equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -198,9 +238,17 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchUniqueValues, toast]);
+  }, [fetchUniqueValues, toast, userPermissions]);
 
   const deleteEquipment = useCallback(async (id: string) => {
+    if (!userPermissions?.can_delete) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para remover equipamentos.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const { error } = await supabase
@@ -230,9 +278,17 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  }, [fetchUniqueValues, toast]);
+  }, [fetchUniqueValues, toast, userPermissions]);
 
   const markAsCleaned = useCallback(async (equipmentId: string) => {
+    if (!userPermissions?.can_mark_cleaned) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para registrar limpezas.",
+        variant: "destructive"
+      });
+      return;
+    }
     setLoading(true);
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -280,7 +336,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, userPermissions]);
 
   const getEquipmentHistory = (equipmentId: string): CleaningHistory[] => {
     return history
@@ -301,13 +357,13 @@ export const useEquipment = (currentPage: number, itemsPerPage: number) => {
     deleteEquipment,
     markAsCleaned,
     getEquipmentHistory,
-    userRole, // Retorne o papel do usuário
+    userPermissions,
     refetch: () => {
       fetchEquipment(currentPage, itemsPerPage);
       fetchHistory();
       fetchAllEquipment();
       fetchUniqueValues();
-      fetchUserRole();
+      fetchUserPermissions();
     }
   };
 };
