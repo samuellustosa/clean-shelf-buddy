@@ -72,6 +72,7 @@ export const AdvancedFilters: React.FC<AdvancedFiltersProps> = ({
             <SelectContent>
               <SelectItem value="all">Todos</SelectItem>
               <SelectItem value="ok">Em dia</SelectItem>
+              <SelectItem value="warning">Aviso</SelectItem>
               <SelectItem value="overdue">Atrasado</SelectItem>
             </SelectContent>
           </Select>

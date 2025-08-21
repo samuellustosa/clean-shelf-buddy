@@ -2,14 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { Equipment, CleaningHistory, UserProfile, EquipmentFilters } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getLocalDateISO, getEquipmentStatus } from '@/utils/equipmentUtils';
+import { addDays, startOfDay } from 'date-fns';
 
-export const useEquipment = (currentPage: number, itemsPerPage: number, filters: EquipmentFilters) => {
+export const useEquipment = (currentPage: number, itemsPerPage: number, filters: EquipmentFilters, setTotalItems: (count: number) => void, totalItems: number) => {
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [allEquipment, setAllEquipment] = useState<Equipment[]>([]);
   const [history, setHistory] = useState<CleaningHistory[]>([]);
   const [loading, setLoading] = useState(false);
-  const [allEquipmentLoading, setAllEquipmentLoading] = useState(false); // Novo estado de carregamento
-  const [totalItems, setTotalItems] = useState(0);
+  const [allEquipmentLoading, setAllEquipmentLoading] = useState(false);
   const [uniqueSectors, setUniqueSectors] = useState<string[]>([]);
   const [uniqueResponsibles, setUniqueResponsibles] = useState<string[]>([]);
   const [userPermissions, setUserPermissions] = useState<UserProfile['permissions'] | null>(null);
@@ -53,32 +54,35 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     try {
       const from = (page - 1) * pageSize;
       const to = from + pageSize - 1;
-
+      
       let query = supabase.from('equipment').select('*', { count: 'exact' });
 
-      // Apply server-side filters
       if (filters.searchTerm) {
         query = query.or(`name.ilike.%${filters.searchTerm}%,sector.ilike.%${filters.searchTerm}%,responsible.ilike.%${filters.searchTerm}%`);
       }
-      if (filters.status && filters.status !== 'all') {
-        // NOTE: This part needs a more complex query based on the logic in getEquipmentStatus
-        // For now, it's just a placeholder. The status logic needs to be re-implemented in a server function or trigger.
-        // E.g. query = query.filter('last_cleaning', 'lt', new Date(Date.now() - filters.periodicity * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
-      }
+      
+      // Aplicando filtros de setor e responsável no lado do servidor
       if (filters.sector && filters.sector !== 'all') {
         query = query.eq('sector', filters.sector);
       }
       if (filters.responsible && filters.responsible !== 'all') {
         query = query.eq('responsible', filters.responsible);
       }
-
-      const { data, error, count } = await query
-        .order('created_at', { ascending: false })
-        .range(from, to);
+      
+      // Lógica de filtro de status no lado do cliente
+      const { data, error, count } = await query.order('created_at', { ascending: false });
 
       if (error) throw error;
-      setEquipment(data || []);
-      setTotalItems(count ?? 0);
+
+      let filteredData = data || [];
+      if (filters.status && filters.status !== 'all') {
+        filteredData = filteredData.filter(item => getEquipmentStatus(item) === filters.status);
+      }
+
+      const paginatedData = filteredData.slice(from, to + 1);
+
+      setEquipment(paginatedData);
+      setTotalItems(filteredData.length ?? 0);
 
     } catch (error) {
       console.error('Error fetching equipment:', error);
@@ -90,14 +94,14 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     } finally {
       setLoading(false);
     }
-  }, [toast, userPermissions]);
+  }, [toast, userPermissions, setTotalItems]);
 
   const fetchAllEquipment = useCallback(async () => {
     if (!userPermissions?.can_view) {
       setAllEquipment([]);
       return;
     }
-    setAllEquipmentLoading(true); // Inicia o carregamento
+    setAllEquipmentLoading(true);
     try {
       const { data, error } = await supabase
         .from('equipment')
@@ -108,7 +112,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     } catch (error) {
       console.error('Error fetching all equipment:', error);
     } finally {
-      setAllEquipmentLoading(false); // Finaliza o carregamento
+      setAllEquipmentLoading(false);
     }
   }, [userPermissions]);
 
@@ -193,7 +197,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
 
       setEquipment(prev => [data, ...prev]);
       setAllEquipment(prev => [data, ...prev]);
-      setTotalItems(prev => prev + 1);
+      setTotalItems(totalItems + 1);
       toast({
         title: "Sucesso",
         description: "Equipamento adicionado com sucesso"
@@ -209,7 +213,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     } finally {
       setLoading(false);
     }
-  }, [fetchUniqueValues, toast, userPermissions]);
+  }, [fetchUniqueValues, toast, userPermissions, setTotalItems, totalItems]);
 
   const updateEquipment = useCallback(async (id: string, updates: Partial<Equipment>) => {
     if (!userPermissions?.can_edit) {
@@ -271,7 +275,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
       setEquipment(prev => prev.filter(item => item.id !== id));
       setAllEquipment(prev => prev.filter(item => item.id !== id));
       setHistory(prev => prev.filter(item => item.equipment_id !== id));
-      setTotalItems(prev => Math.max(0, prev - 1));
+      setTotalItems(Math.max(0, totalItems - 1));
       
       toast({
         title: "Sucesso",
@@ -288,7 +292,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     } finally {
       setLoading(false);
     }
-  }, [fetchUniqueValues, toast, userPermissions]);
+  }, [fetchUniqueValues, toast, userPermissions, setTotalItems, totalItems]);
 
   const markAsCleaned = useCallback(async (equipmentId: string) => {
     if (!userPermissions?.can_mark_cleaned) {
@@ -301,7 +305,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     }
     setLoading(true);
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDateISO();
       
       const { data: equipmentData, error: equipmentError } = await supabase
         .from('equipment')
@@ -359,8 +363,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
     allEquipment,
     history,
     loading,
-    allEquipmentLoading, // Retornar o novo estado de carregamento
-    totalItems,
+    allEquipmentLoading,
     uniqueSectors,
     uniqueResponsibles,
     addEquipment,

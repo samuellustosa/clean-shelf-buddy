@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
-import { useEquipmentFilters } from '@/hooks/useEquipmentFilters';
-import { Equipment } from '@/types/equipment';
+import { Equipment, EquipmentFilters } from '@/types/equipment';
 import { EquipmentTable } from '@/components/EquipmentTable';
 import { EquipmentForm } from '@/components/EquipmentForm';
 import { HistoryModal } from '@/components/HistoryModal';
@@ -23,19 +22,23 @@ import {
   DropdownMenuSeparator
 } from '@/components/ui/dropdown-menu';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
+import { usePagination } from '@/hooks/usePagination';
 
 const Index = () => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 35;
+  const [filters, setFilters] = useState<EquipmentFilters>({
+    status: 'all',
+    sector: 'all',
+    responsible: 'all',
+    searchTerm: '',
+  });
 
-  const { filters, setFilters, clearFilters } = useEquipmentFilters([]);
+  const { currentPage, itemsPerPage, totalItems, totalPages, setTotalItems, handlePageChange } = usePagination(35);
 
   const {
     equipment,
     allEquipment,
     loading,
     allEquipmentLoading,
-    totalItems,
     uniqueSectors,
     uniqueResponsibles,
     addEquipment,
@@ -45,7 +48,8 @@ const Index = () => {
     getEquipmentHistory,
     userPermissions,
     fetchAllEquipment,
-  } = useEquipment(currentPage, itemsPerPage, filters);
+    refetch,
+  } = useEquipment(currentPage, itemsPerPage, filters, setTotalItems, totalItems);
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -60,7 +64,6 @@ const Index = () => {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("table");
 
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const paginatedEquipment = equipment;
 
   const handleCreateEquipment = () => {
@@ -297,10 +300,10 @@ const Index = () => {
               setFilters={setFilters}
               uniqueSectors={uniqueSectors}
               uniqueResponsibles={uniqueResponsibles}
-              clearFilters={clearFilters}
+              clearFilters={() => setFilters({ status: 'all', sector: 'all', responsible: 'all', searchTerm: '' })}
               isOpen={isFiltersOpen}
               onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
-              onReload={() => window.location.reload()}
+              onReload={() => refetch()}
             />
 
             {loading ? (
@@ -321,12 +324,12 @@ const Index = () => {
                     <Pagination>
                       <PaginationContent>
                         <PaginationItem>
-                          <PaginationPrevious onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} />
+                          <PaginationPrevious onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage <= 1} />
                         </PaginationItem>
                         {[...Array(totalPages)].map((_, index) => (
                           <PaginationItem key={index}>
                             <PaginationLink
-                              onClick={() => setCurrentPage(index + 1)}
+                              onClick={() => handlePageChange(index + 1)}
                               isActive={currentPage === index + 1}
                             >
                               {index + 1}
@@ -334,7 +337,7 @@ const Index = () => {
                           </PaginationItem>
                         ))}
                         <PaginationItem>
-                          <PaginationNext onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} />
+                          <PaginationNext onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage >= totalPages} />
                         </PaginationItem>
                       </PaginationContent>
                     </Pagination>
