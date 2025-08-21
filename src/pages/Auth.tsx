@@ -49,9 +49,9 @@ const AuthPage = () => {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background lg:bg-gray-50 dark:lg:bg-gray-900">
       <div className="hidden lg:flex flex-col items-center justify-center p-8 bg-gray-900 text-white dark:bg-gray-950">
         <img src="/imglogo.png" alt="Clean Shelf Buddy Logo" className="w-40 h-40 mb-4" />
-        <h1 className="text-4xl font-bold mb-2">Clean Shelf Buddy</h1>
+        <h1 className="text-4xl font-bold mb-2">CheckList-CPD</h1>
         <p className="text-lg text-gray-300 text-center">
-          Simplificando o controle de limpeza e manutenção de equipamentos.
+          Controle de limpeza e manutenção de equipamentos.
         </p>
       </div>
       <div className="flex items-center justify-center p-8">
