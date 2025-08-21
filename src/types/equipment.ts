@@ -25,6 +25,7 @@ export interface UserProfile {
   id: string;
   full_name: string | null;
   role: 'user' | 'superuser';
+  email: string;
 }
 
 export interface EquipmentFilters {

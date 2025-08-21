@@ -10,7 +10,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import { ThemeProvider } from "next-themes";
 
 const Auth = lazy(() => import("./pages/Auth"));
-
+const UserManagementPage = lazy(() => import("@/pages/UserManagement"));
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -24,6 +24,7 @@ const App = () => (
             <Routes>
               <Route element={<ProtectedRoute />}>
                 <Route path="/" element={<Index />} />
+                <Route path="/admin/users" element={<UserManagementPage />} />
               </Route>
               <Route path="/auth" element={<Auth />} />
               <Route path="*" element={<NotFound />} />

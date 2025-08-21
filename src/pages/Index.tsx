@@ -10,7 +10,7 @@ import { Dashboard } from '@/components/Dashboard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationLink, PaginationEllipsis, PaginationNext } from '@/components/ui/pagination';
-import { Plus, ClipboardList, LayoutDashboard, MoreHorizontal, LogOut, LogIn } from 'lucide-react';
+import { Plus, ClipboardList, LayoutDashboard, MoreHorizontal, LogOut, LogIn, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -153,6 +153,13 @@ const Index = () => {
     if (isAuthenticated) {
       return (
         <div className="flex items-center gap-2">
+          {userRole === 'superuser' && (
+            <Button asChild variant="ghost" className="flex items-center gap-2">
+              <Link to="/admin/users">
+                <Users className="h-4 w-4" /> Gerenciar Usuários
+              </Link>
+            </Button>
+          )}
           <span className="text-sm text-muted-foreground hidden lg:inline">
             {userRole === 'superuser' ? 'Superusuário' : 'Usuário'}: {userEmail ?? 'Usuário'}
           </span>
@@ -181,6 +188,14 @@ const Index = () => {
         <DropdownMenuContent align="end">
           {isAuthenticated ? (
             <>
+              {userRole === 'superuser' && (
+                <DropdownMenuItem asChild>
+                  <Link to="/admin/users" className="flex items-center gap-2">
+                    <Users className="h-4 w-4" /> Gerenciar Usuários
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {userRole === 'superuser' && <DropdownMenuSeparator />}
               <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" /> Novo Equipamento
               </DropdownMenuItem>
