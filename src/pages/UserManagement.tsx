@@ -25,12 +25,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
+import { Input } from '@/components/ui/input';
+import { Plus } from 'lucide-react';
 
 const UserManagementPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [userPermissions, setUserPermissions] = useState<UserProfile['permissions'] | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
   const { toast } = useToast();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -217,6 +221,8 @@ const UserManagementPage = () => {
         <h1 className="text-3xl font-bold">Gerenciar Usuários</h1>
         <Button onClick={() => navigate('/')}>Voltar para o Início</Button>
       </div>
+
+
       <div className="border rounded-lg">
         {isMobile ? (
           <div className="p-4 space-y-6">
