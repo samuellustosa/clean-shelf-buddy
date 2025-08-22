@@ -1,2 +1,26 @@
-
-{ "name": "CheckCPD", "short_name": "CPD", "description": "Sistema de controle de limpeza e manutenção de equipamentos.", "lang": "pt-BR", "start_url": "https://checklistcpd.vercel.app/auth", "id": "nome.id", "iarc_rating_id": "PWA7-G5PA-AG3A-DG1E-8LY3-BK24-1C7N-DV7Z-2024", "display": "standalone", "theme_color": "#ffffff", "icons": [  {   "src": "/imglogo.img",   "sizes": "192x192",   "type": "image/png"  } ], "background_color": "#ffffff", "screenshots": [  {   "src": "/imglogo.img",   "sizes": "512x512",   "type": "image/png"  } ]}
+{
+  "name": "CheckCPD",
+  "short_name": "CPD",
+  "description": "Sistema de controle de limpeza e manutenção de equipamentos.",
+  "lang": "pt-BR",
+  "start_url": "https://checklistcpd.vercel.app/auth",
+  "id": "nome.id",
+  "iarc_rating_id": "PWA7-G5PA-AG3A-DG1E-8LY3-BK24-1C7N-DV7Z-2024",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "/imglogo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ],
+  "background_color": "#ffffff",
+  "screenshots": [
+    {
+      "src": "/imglogo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
