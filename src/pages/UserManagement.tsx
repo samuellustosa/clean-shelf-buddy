@@ -98,6 +98,7 @@ const UserManagementPage = () => {
             can_view: userPermissions.can_view ?? false,
             can_mark_cleaned: userPermissions.can_mark_cleaned ?? false,
             can_manage_users: userPermissions.can_manage_users ?? false,
+            can_manage_stock: userPermissions.can_manage_stock ?? false,
           },
           email: 'E-mail não disponível',
         };
@@ -139,14 +140,15 @@ const UserManagementPage = () => {
       newPermissions.can_edit = false;
       newPermissions.can_delete = false;
       newPermissions.can_mark_cleaned = false;
+      newPermissions.can_manage_stock = false;
       toast({
         title: 'Permissão ajustada',
-        description: 'A permissão de "Visualizar" é um pré-requisito. As permissões de "Adicionar", "Editar", "Deletar" e "Registrar Limpeza" foram desativadas automaticamente.',
+        description: 'A permissão de "Visualizar" é um pré-requisito. As permissões de "Adicionar", "Editar", "Deletar", "Registrar Limpeza" e "Gerenciar Estoque" foram desativadas automaticamente.',
         variant: 'default',
       });
     }
 
-    if ((permission === 'can_add' || permission === 'can_edit' || permission === 'can_delete' || permission === 'can_mark_cleaned') && value === true) {
+    if ((permission === 'can_add' || permission === 'can_edit' || permission === 'can_delete' || permission === 'can_mark_cleaned' || permission === 'can_manage_stock') && value === true) {
       newPermissions.can_view = true;
       toast({
         title: 'Permissão ajustada',
@@ -185,6 +187,7 @@ const UserManagementPage = () => {
     can_view: 'Visualizar',
     can_mark_cleaned: 'Registrar Limpeza',
     can_manage_users: 'Gerenciar Usuários',
+    can_manage_stock: 'Gerenciar Estoque',
   };
 
   const renderPermissionsCheckboxes = (user: UserProfile) => (
@@ -248,6 +251,7 @@ const UserManagementPage = () => {
                 <TableHead className="font-bold">Deletar</TableHead>
                 <TableHead className="font-bold">Visualizar</TableHead>
                 <TableHead className="font-bold">Registrar Limpeza</TableHead>
+                <TableHead className="font-bold">Gerenciar Estoque</TableHead>
                 <TableHead className="font-bold">Gerenciar Usuários</TableHead>
               </TableRow>
             </TableHeader>
@@ -287,6 +291,13 @@ const UserManagementPage = () => {
                     <Checkbox
                       checked={user.permissions.can_mark_cleaned}
                       onCheckedChange={(checked) => handlePermissionChange(user.id, 'can_mark_cleaned', checked as boolean)}
+                      disabled={!userPermissions?.can_manage_users}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Checkbox
+                      checked={user.permissions.can_manage_stock}
+                      onCheckedChange={(checked) => handlePermissionChange(user.id, 'can_manage_stock', checked as boolean)}
                       disabled={!userPermissions?.can_manage_users}
                     />
                   </TableCell>

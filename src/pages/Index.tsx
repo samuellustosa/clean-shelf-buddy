@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
-import { Equipment, EquipmentFilters } from '@/types/equipment';
+import { useStock } from '@/hooks/useStock';
+import { Equipment, EquipmentFilters, StockItem } from '@/types/equipment';
 import { EquipmentTable } from '@/components/EquipmentTable';
 import { EquipmentForm } from '@/components/EquipmentForm';
+import { StockTable } from '@/components/StockTable';
+import { StockForm } from '@/components/StockForm';
 import { HistoryModal } from '@/components/HistoryModal';
 import { AdvancedFilters } from '@/components/AdvancedFilters';
 import { Dashboard } from '@/components/Dashboard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Pagination, PaginationContent, PaginationItem, PaginationPrevious, PaginationLink, PaginationEllipsis, PaginationNext } from '@/components/ui/pagination';
-import { Plus, ClipboardList, LayoutDashboard, MoreHorizontal, LogOut, LogIn, Users } from 'lucide-react';
+import { Plus, ClipboardList, LayoutDashboard, MoreHorizontal, LogOut, LogIn, Users, Box } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -25,7 +28,7 @@ import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { usePagination } from '@/hooks/usePagination';
 
 const Index = () => {
-  const [filters, setFilters] = useState<EquipmentFilters>({
+  const [equipmentFilters, setEquipmentFilters] = useState<EquipmentFilters>({
     status: 'all',
     sector: 'all',
     responsible: 'all',
@@ -37,7 +40,7 @@ const Index = () => {
   const {
     equipment,
     allEquipment,
-    loading,
+    loading: equipmentLoading,
     allEquipmentLoading,
     uniqueSectors,
     uniqueResponsibles,
@@ -48,23 +51,35 @@ const Index = () => {
     getEquipmentHistory,
     userPermissions,
     fetchAllEquipment,
-    refetch,
-  } = useEquipment(currentPage, itemsPerPage, filters, setTotalItems, totalItems);
+    refetch: refetchEquipment,
+  } = useEquipment(currentPage, itemsPerPage, equipmentFilters, setTotalItems, totalItems);
+
+  const {
+    stock,
+    loading: stockLoading,
+    addStockItem,
+    updateStockItem,
+    deleteStockItem,
+    refetch: refetchStock,
+  } = useStock();
 
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEquipmentFormOpen, setIsEquipmentFormOpen] = useState(false);
+  const [isStockFormOpen, setIsStockFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
-  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+  const [editingStockItem, setEditingStockItem] = useState<StockItem | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+  const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("table");
 
   const paginatedEquipment = equipment;
+  const paginatedStock = stock;
 
   const handleCreateEquipment = () => {
     if (!userPermissions?.can_add) {
@@ -77,7 +92,21 @@ const Index = () => {
     }
     setEditingEquipment(null);
     setFormMode('create');
-    setIsFormOpen(true);
+    setIsEquipmentFormOpen(true);
+  };
+  
+  const handleCreateStockItem = () => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para adicionar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setEditingStockItem(null);
+    setFormMode('create');
+    setIsStockFormOpen(true);
   };
 
   const handleEditEquipment = (equipment: Equipment) => {
@@ -91,7 +120,21 @@ const Index = () => {
     }
     setEditingEquipment(equipment);
     setFormMode('edit');
-    setIsFormOpen(true);
+    setIsEquipmentFormOpen(true);
+  };
+
+  const handleEditStockItem = (item: StockItem) => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para editar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setEditingStockItem(item);
+    setFormMode('edit');
+    setIsStockFormOpen(true);
   };
 
   const handleSubmitEquipment = (equipmentData: Omit<Equipment, 'id' | 'created_at' | 'updated_at'>) => {
@@ -99,6 +142,14 @@ const Index = () => {
       addEquipment(equipmentData);
     } else if (editingEquipment) {
       updateEquipment(editingEquipment.id, equipmentData);
+    }
+  };
+  
+  const handleSubmitStockItem = (itemData: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>) => {
+    if (formMode === 'create') {
+      addStockItem(itemData);
+    } else if (editingStockItem) {
+      updateStockItem(editingStockItem.id, itemData);
     }
   };
 
@@ -112,6 +163,18 @@ const Index = () => {
       return;
     }
     deleteEquipment(id);
+  };
+  
+  const handleDeleteStockItem = (id: string) => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para deletar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    deleteStockItem(id);
   };
 
   const handleMarkCleaned = (id: string) => {
@@ -131,9 +194,15 @@ const Index = () => {
     setIsHistoryOpen(true);
   };
 
-  const handleCloseForm = () => {
-    setIsFormOpen(false);
+  const handleCloseEquipmentForm = () => {
+    setIsEquipmentFormOpen(false);
     setEditingEquipment(null);
+    setFormMode('create');
+  };
+  
+  const handleCloseStockForm = () => {
+    setIsStockFormOpen(false);
+    setEditingStockItem(null);
     setFormMode('create');
   };
 
@@ -231,6 +300,11 @@ const Index = () => {
                   <Plus className="h-4 w-4" /> Novo Equipamento
                 </DropdownMenuItem>
               )}
+              {userPermissions?.can_manage_stock && (
+                <DropdownMenuItem onClick={handleCreateStockItem} className="flex items-center gap-2">
+                  <Box className="h-4 w-4" /> Novo Item de Estoque
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem disabled>
                 {userPermissions?.can_manage_users ? 'Administrador' : userPermissions?.can_delete ? 'Superusuário' : userPermissions?.can_edit ? 'Editor' : 'Visualizador'}: {userEmail ?? 'Usuário'}
@@ -278,6 +352,12 @@ const Index = () => {
                 Novo Equipamento
               </Button>
             )}
+            {!isMobile && isAuthenticated && activeTab === 'stock' && userPermissions?.can_manage_stock && (
+              <Button onClick={handleCreateStockItem} className="flex items-center gap-2">
+                <Plus className="h-4 w-4" />
+                Novo Item de Estoque
+              </Button>
+            )}
             {!isMobile && renderAuthButtons()}
             {isMobile && renderDropdownMenu()}
           </div>
@@ -287,7 +367,10 @@ const Index = () => {
           <div className="flex justify-between items-center mb-4">
             <TabsList>
               <TabsTrigger value="table" className="flex items-center gap-2">
-                <ClipboardList className="h-4 w-4" /> Tabela
+                <ClipboardList className="h-4 w-4" /> Equipamentos
+              </TabsTrigger>
+              <TabsTrigger value="stock" className="flex items-center gap-2">
+                <Box className="h-4 w-4" /> Estoque
               </TabsTrigger>
               <TabsTrigger value="dashboard" className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4" /> Dashboard
@@ -296,17 +379,17 @@ const Index = () => {
           </div>
           <TabsContent value="table">
             <AdvancedFilters
-              filters={filters}
-              setFilters={setFilters}
+              filters={equipmentFilters}
+              setFilters={setEquipmentFilters}
               uniqueSectors={uniqueSectors}
               uniqueResponsibles={uniqueResponsibles}
-              clearFilters={() => setFilters({ status: 'all', sector: 'all', responsible: 'all', searchTerm: '' })}
+              clearFilters={() => setEquipmentFilters({ status: 'all', sector: 'all', responsible: 'all', searchTerm: '' })}
               isOpen={isFiltersOpen}
               onToggle={() => setIsFiltersOpen(!isFiltersOpen)}
-              onReload={() => refetch()}
+              onReload={() => refetchEquipment()}
             />
 
-            {loading ? (
+            {equipmentLoading ? (
                 <div className="text-center py-8">Carregando equipamentos...</div>
             ) : (
               <>
@@ -346,6 +429,18 @@ const Index = () => {
               </>
             )}
           </TabsContent>
+          <TabsContent value="stock">
+            {stockLoading ? (
+                <div className="text-center py-8">Carregando itens de estoque...</div>
+            ) : (
+              <StockTable
+                stock={paginatedStock}
+                onEdit={handleEditStockItem}
+                onDelete={handleDeleteStockItem}
+                userPermissions={userPermissions}
+              />
+            )}
+          </TabsContent>
           <TabsContent value="dashboard">
             {allEquipmentLoading ? (
               <DashboardSkeleton />
@@ -356,13 +451,21 @@ const Index = () => {
         </Tabs>
 
         <EquipmentForm
-          isOpen={isFormOpen}
-          onClose={handleCloseForm}
+          isOpen={isEquipmentFormOpen}
+          onClose={handleCloseEquipmentForm}
           onSubmit={handleSubmitEquipment}
           equipment={editingEquipment}
           mode={formMode}
           uniqueSectors={uniqueSectors}
           uniqueResponsibles={uniqueResponsibles}
+        />
+
+        <StockForm
+          isOpen={isStockFormOpen}
+          onClose={handleCloseStockForm}
+          onSubmit={handleSubmitStockItem}
+          item={editingStockItem}
+          mode={formMode}
         />
 
         <HistoryModal
