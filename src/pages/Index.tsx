@@ -1,3 +1,5 @@
+// src/pages/Index.tsx
+
 import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useStock } from '@/hooks/useStock';
@@ -295,12 +297,12 @@ const Index = () => {
                   </Link>
                 </DropdownMenuItem>
               )}
-              {userPermissions?.can_add && (
+              {userPermissions?.can_add && activeTab !== 'stock' && (
                 <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" /> Novo Equipamento
                 </DropdownMenuItem>
               )}
-              {userPermissions?.can_manage_stock && (
+              {userPermissions?.can_manage_stock && activeTab === 'stock' && (
                 <DropdownMenuItem onClick={handleCreateStockItem} className="flex items-center gap-2">
                   <Box className="h-4 w-4" /> Novo Item de Estoque
                 </DropdownMenuItem>
