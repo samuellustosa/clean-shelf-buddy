@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { StockItem, UserProfile, MaintenanceStatus, StockHistory } from '@/types/equipment';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -13,8 +13,6 @@ export const useStock = () => {
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [userPermissions, setUserPermissions] = useState<UserProfile['permissions'] | null>(null);
-  const [parentItems, setParentItems] = useState<StockItem[]>([]);
-  const [childItems, setChildItems] = useState<StockItem[]>([]);
   const { toast } = useToast();
 
   const fetchUserPermissions = useCallback(async () => {
@@ -55,13 +53,7 @@ export const useStock = () => {
 
       if (error) throw error;
       
-      const allItems = data as StockItem[] || [];
-      const parents = allItems.filter(item => item.parent_item_id === null);
-      const children = allItems.filter(item => item.parent_item_id !== null);
-
-      setStock(allItems);
-      setParentItems(parents);
-      setChildItems(children);
+      setStock(data as StockItem[] || []);
     } catch (error) {
       console.error('Error fetching stock items:', error);
       toast({
@@ -87,6 +79,29 @@ export const useStock = () => {
       console.error('Error fetching stock history:', error);
     }
   }, []);
+
+  const parentItems = useMemo(() => {
+    const children = stock.filter(item => item.parent_item_id !== null);
+    const nonChildren = stock.filter(item => item.parent_item_id === null);
+
+    const parentsWithAggregatedQuantity = nonChildren.map(item => {
+      const hasChildren = children.some(child => child.parent_item_id === item.id);
+      if (hasChildren) {
+        const totalQuantity = children
+          .filter(child => child.parent_item_id === item.id)
+          .reduce((sum, child) => sum + child.current_quantity, 0);
+        
+        return {
+          ...item,
+          current_quantity: totalQuantity,
+        };
+      }
+      return item;
+    });
+    return parentsWithAggregatedQuantity;
+  }, [stock]);
+
+  const childItems = useMemo(() => stock.filter(item => item.parent_item_id !== null), [stock]);
 
   useEffect(() => {
     fetchUserPermissions();
@@ -158,6 +173,11 @@ export const useStock = () => {
     setLoading(true);
     try {
       const itemToUpdate = stock.find(item => item.id === id);
+
+      if (!itemToUpdate) {
+        throw new Error("Item não encontrado.");
+      }
+
       const updatedItem = { ...itemToUpdate, ...updates };
       const maintenanceStatus = getStockItemStatus({ current_quantity: updatedItem.current_quantity, minimum_stock: updatedItem.minimum_stock, manual_status: updates.maintenance_status });
 
@@ -199,7 +219,33 @@ export const useStock = () => {
     }
     setLoading(true);
     try {
-      // Primeiro, deletar todos os registros de histórico de estoque associados
+      // Deletar o histórico de todos os filhos primeiro
+      const { data: children, error: childrenError } = await supabase
+        .from('stock_items')
+        .select('id')
+        .eq('parent_item_id', id);
+      
+      if (childrenError) throw childrenError;
+
+      if (children && children.length > 0) {
+        const childIds = children.map(child => child.id);
+        const { error: childrenHistoryError } = await supabase
+          .from('stock_history')
+          .delete()
+          .in('item_id', childIds);
+        
+        if (childrenHistoryError) throw childrenHistoryError;
+        
+        // Deletar os itens filhos
+        const { error: deleteChildrenError } = await supabase
+          .from('stock_items')
+          .delete()
+          .eq('parent_item_id', id);
+
+        if (deleteChildrenError) throw deleteChildrenError;
+      }
+      
+      // Deletar o histórico do item pai
       const { error: historyError } = await supabase
         .from('stock_history')
         .delete()
@@ -210,7 +256,7 @@ export const useStock = () => {
         throw new Error('Não foi possível deletar o histórico do item. Verifique as permissões.');
       }
 
-      // Em seguida, deletar o item principal da tabela de estoque
+      // Finalmente, deletar o item pai
       const { error } = await supabase
         .from('stock_items')
         .delete()

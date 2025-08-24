@@ -142,8 +142,133 @@ export const StockTable: React.FC<StockTableProps> = ({
     );
   };
 
-  const renderStockItems = (items: StockItem[], isChild = false) => {
-    if (items.length === 0 && !isChild) {
+  const renderActions = (item: StockItem) => {
+    const hasChildren = childItems.some(c => c.parent_item_id === item.id);
+    const isStandaloneItem = !item.parent_item_id && !hasChildren;
+    const isChildItem = !!item.parent_item_id;
+
+    return (
+      <div className="flex justify-end gap-2">
+        {(isStandaloneItem || isChildItem) && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => onWithdraw(item)}
+            disabled={item.current_quantity === 0}
+          >
+            <Minus className="h-3 w-3" />
+          </Button>
+        )}
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => handleEditClick(item)}
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!userPermissions?.can_manage_stock) {
+                  toast({
+                    title: "Permissão negada",
+                    description: "Você não tem permissão para deletar itens de estoque.",
+                    variant: "destructive"
+                  });
+                }
+              }}
+              disabled={!userPermissions?.can_manage_stock}
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => handleDeleteClick(item.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    );
+  };
+
+  const renderRow = (item: StockItem, index: number, isChildRow = false, parentIndex?: number, childIndex?: number) => {
+    const hasChildren = childItems.some(c => c.parent_item_id === item.id);
+    const isExpandableParent = !item.parent_item_id && hasChildren;
+    const isExpanded = isExpandableParent && expandedParents.has(item.id);
+    const isStandaloneItem = !item.parent_item_id && !hasChildren;
+
+    return (
+      <TableRow
+        key={item.id}
+        className={cn(
+          "transition-colors hover:bg-muted/50",
+          {
+            "bg-blue-50/50 dark:bg-slate-800/50": !isChildRow && index % 2 === 0,
+            "bg-card": !isChildRow && index % 2 !== 0,
+            "bg-muted/30": isChildRow,
+            "font-bold": isExpandableParent,
+          }
+        )}
+      >
+        <TableCell className="font-bold px-4 text-sm w-12">
+          {isChildRow ? `${parentIndex}.${childIndex}` : index + 1}
+        </TableCell>
+        <TableCell className={cn("px-4 text-sm w-48", { "pl-16": isChildRow })}>
+          <div className="flex items-center gap-2">
+            {isExpandableParent && (
+              <ChevronRight
+                className={cn("h-3 w-3 transition-transform duration-200 cursor-pointer", { "rotate-90": isExpanded })}
+                onClick={() => toggleExpand(item.id)}
+              />
+            )}
+            {item.name}
+          </div>
+        </TableCell>
+        <TableCell className="px-4 text-sm hidden lg:table-cell">{item.category}</TableCell>
+        <TableCell className="text-center px-4">
+          {getStockQuantityBadge(item)}
+        </TableCell>
+        <TableCell className="text-center px-4">
+          <span className="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted">
+            {isExpandableParent ? '-' : item.minimum_stock}
+          </span>
+        </TableCell>
+        <TableCell className="px-4 text-sm hidden lg:table-cell">
+          {isExpandableParent ? '-' : item.location}
+        </TableCell>
+        <TableCell className="px-4 text-sm">
+          {isExpandableParent ? '-' : item.asset_number || 'N/A'}
+        </TableCell>
+        <TableCell className="text-center px-4 text-sm">
+          {isExpandableParent ? '-' : getStatusBadge(item)}
+        </TableCell>
+        <TableCell className="text-right px-4">
+          {renderActions(item)}
+        </TableCell>
+      </TableRow>
+    );
+  };
+
+  const renderTableBody = () => {
+    if (parentItems.length === 0 && childItems.length === 0) {
       return (
         <TableRow>
           <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
@@ -153,114 +278,21 @@ export const StockTable: React.FC<StockTableProps> = ({
       );
     }
     
-    return items.map((item, index) => {
-      const isParent = parentItems.some(p => p.id === item.id);
-      const isExpanded = isParent && expandedParents.has(item.id);
-      const childItemsForParent = isParent ? childItems.filter(c => c.parent_item_id === item.id) : [];
+    let rows: React.ReactNode[] = [];
+    parentItems.forEach((item, index) => {
+      rows.push(renderRow(item, index));
+      const hasChildren = childItems.some(c => c.parent_item_id === item.id);
+      const isExpanded = hasChildren && expandedParents.has(item.id);
 
-      const renderRow = (stockItem: StockItem, isChildRow = false, parentIndex?: number, childIndex?: number) => (
-        <React.Fragment key={stockItem.id}>
-          <TableRow
-            className={cn(
-              "transition-colors hover:bg-muted/50",
-              {
-                "bg-blue-50/50 dark:bg-slate-800/50": !isChildRow && index % 2 === 0,
-                "bg-card": !isChildRow && index % 2 !== 0,
-                "bg-muted/30": isChildRow
-              }
-            )}
-          >
-            <TableCell className="font-bold px-4 text-sm w-12">
-              {isChildRow ? `${parentIndex}.${childIndex}` : index + 1}
-            </TableCell>
-            <TableCell className={cn("font-bold px-4 text-sm w-48", { "pl-16": isChildRow })}>
-              <div className="flex items-center gap-2">
-                {isParent && (
-                  <ChevronRight
-                    className={cn("h-3 w-3 transition-transform duration-200", { "rotate-90": isExpanded })}
-                    onClick={() => toggleExpand(stockItem.id)}
-                  />
-                )}
-                {stockItem.name}
-              </div>
-            </TableCell>
-            <TableCell className="px-4 text-sm hidden lg:table-cell">{stockItem.category}</TableCell>
-            <TableCell className="text-center px-4">
-              {getStockQuantityBadge(stockItem)}
-            </TableCell>
-            <TableCell className="text-center px-4">
-              <span className="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted">
-                {stockItem.minimum_stock}
-              </span>
-            </TableCell>
-            <TableCell className="px-4 text-sm hidden lg:table-cell">{stockItem.location}</TableCell>
-            <TableCell className="px-4 text-sm">{stockItem.asset_number || 'N/A'}</TableCell>
-            <TableCell className="text-center px-4 text-sm">{getStatusBadge(stockItem)}</TableCell>
-            <TableCell className="text-right px-4">
-              <div className="flex justify-end gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => onWithdraw(stockItem)}
-                  disabled={stockItem.current_quantity === 0}
-                >
-                  <Minus className="h-3 w-3" />
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => handleEditClick(stockItem)}
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (!userPermissions?.can_manage_stock) {
-                          toast({
-                            title: "Permissão negada",
-                            description: "Você não tem permissão para deletar itens de estoque.",
-                            variant: "destructive"
-                          });
-                        }
-                      }}
-                      disabled={!userPermissions?.can_manage_stock}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{stockItem.name}".
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => handleDeleteClick(stockItem.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Continuar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            </TableCell>
-          </TableRow>
-          {isExpanded && childItemsForParent.map((child, childIndex) => renderRow(child, true, index + 1, childIndex + 1))}
-        </React.Fragment>
-      );
-
-      return renderRow(item);
+      if (isExpanded) {
+        const childItemsForParent = childItems.filter(c => c.parent_item_id === item.id);
+        childItemsForParent.forEach((child, childIndex) => {
+          rows.push(renderRow(child, childIndex, true, index + 1, childIndex + 1));
+        });
+      }
     });
+
+    return rows;
   };
 
   if (isMobile) {
@@ -305,196 +337,7 @@ export const StockTable: React.FC<StockTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {parentItems.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={9} className="text-center py-8 text-muted-foreground text-sm">
-                Nenhum item de estoque encontrado!
-              </TableCell>
-            </TableRow>
-          ) : (
-            parentItems.map((item, index) => {
-              const isParent = parentItems.some(p => p.id === item.id);
-              const isExpanded = isParent && expandedParents.has(item.id);
-              const childItemsForParent = isParent ? childItems.filter(c => c.parent_item_id === item.id) : [];
-
-              return (
-                <React.Fragment key={item.id}>
-                  <TableRow
-                    className={cn(
-                      "transition-colors hover:bg-muted/50",
-                      {
-                        "bg-blue-50/50 dark:bg-slate-800/50": index % 2 === 0,
-                        "bg-card": index % 2 !== 0,
-                      }
-                    )}
-                  >
-                    <TableCell className="font-bold px-4 text-sm w-12">
-                      {index + 1}
-                    </TableCell>
-                    <TableCell className={cn("font-bold px-4 text-sm w-48")}>
-                      <div className="flex items-center gap-2">
-                        {isParent && (
-                          <ChevronRight
-                            className={cn("h-3 w-3 transition-transform duration-200", { "rotate-90": isExpanded })}
-                            onClick={() => toggleExpand(item.id)}
-                          />
-                        )}
-                        {item.name}
-                      </div>
-                    </TableCell>
-                    <TableCell className="px-4 text-sm hidden lg:table-cell">{item.category}</TableCell>
-                    <TableCell className="text-center px-4">
-                      {getStockQuantityBadge(item)}
-                    </TableCell>
-                    <TableCell className="text-center px-4">
-                      <span className="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted">
-                        {item.minimum_stock}
-                      </span>
-                    </TableCell>
-                    <TableCell className="px-4 text-sm hidden lg:table-cell">{item.location}</TableCell>
-                    <TableCell className="px-4 text-sm">{item.asset_number || 'N/A'}</TableCell>
-                    <TableCell className="text-center px-4 text-sm">{getStatusBadge(item)}</TableCell>
-                    <TableCell className="text-right px-4">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onWithdraw(item)}
-                          disabled={item.current_quantity === 0}
-                        >
-                          <Minus className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditClick(item)}
-                        >
-                          <Pencil className="h-3 w-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (!userPermissions?.can_manage_stock) {
-                                  toast({
-                                    title: "Permissão negada",
-                                    description: "Você não tem permissão para deletar itens de estoque.",
-                                    variant: "destructive"
-                                  });
-                                }
-                              }}
-                              disabled={!userPermissions?.can_manage_stock}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteClick(item.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Continuar
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && childItemsForParent.map((child, childIndex) => (
-                    <TableRow key={child.id} className="bg-muted/30">
-                       <TableCell className="font-bold px-4 text-sm w-12 pl-16">
-                         {`${index + 1}.${childIndex + 1}`}
-                       </TableCell>
-                       <TableCell className="font-bold px-4 text-sm w-48">{child.name}</TableCell>
-                       <TableCell className="px-4 text-sm hidden lg:table-cell">{child.category}</TableCell>
-                       <TableCell className="text-center px-4">
-                         {getStockQuantityBadge(child)}
-                       </TableCell>
-                       <TableCell className="text-center px-4">
-                         <span className="inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted">
-                           {child.minimum_stock}
-                         </span>
-                       </TableCell>
-                       <TableCell className="px-4 text-sm hidden lg:table-cell">{child.location}</TableCell>
-                       <TableCell className="px-4 text-sm">{child.asset_number || 'N/A'}</TableCell>
-                       <TableCell className="text-center px-4 text-sm">{getStatusBadge(child)}</TableCell>
-                       <TableCell className="text-right px-4">
-                        <div className="flex justify-end gap-2">
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => onWithdraw(child)}
-                             disabled={child.current_quantity === 0}
-                           >
-                             <Minus className="h-3 w-3" />
-                           </Button>
-                           <Button
-                             size="sm"
-                             variant="outline"
-                             onClick={() => handleEditClick(child)}
-                           >
-                             <Pencil className="h-3 w-3" />
-                           </Button>
-                           <AlertDialog>
-                             <AlertDialogTrigger asChild>
-                               <Button
-                                 size="sm"
-                                 variant="outline"
-                                 className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   if (!userPermissions?.can_manage_stock) {
-                                     toast({
-                                       title: "Permissão negada",
-                                       description: "Você não tem permissão para deletar itens de estoque.",
-                                       variant: "destructive"
-                                     });
-                                   }
-                                 }}
-                                 disabled={!userPermissions?.can_manage_stock}
-                               >
-                                 <Trash2 className="h-3 w-3" />
-                               </Button>
-                             </AlertDialogTrigger>
-                             <AlertDialogContent>
-                               <AlertDialogHeader>
-                                 <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                                 <AlertDialogDescription>
-                                   Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{child.name}".
-                                 </AlertDialogDescription>
-                               </AlertDialogHeader>
-                               <AlertDialogFooter>
-                                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                 <AlertDialogAction
-                                   onClick={() => handleDeleteClick(child.id)}
-                                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                 >
-                                   Continuar
-                                 </AlertDialogAction>
-                               </AlertDialogFooter>
-                             </AlertDialogContent>
-                           </AlertDialog>
-                         </div>
-                       </TableCell>
-                    </TableRow>
-                  ))}
-                </React.Fragment>
-              );
-            })
-          )}
+          {renderTableBody()}
         </TableBody>
       </Table>
     </div>

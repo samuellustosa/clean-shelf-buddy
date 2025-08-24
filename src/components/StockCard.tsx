@@ -37,8 +37,13 @@ export const StockCard: React.FC<StockCardProps> = ({
 }) => {
   const { toast } = useToast();
   const [isExpanded, setIsExpanded] = useState(false);
+  const hasChildren = childItems.length > 0;
+  const isParent = !item.parent_item_id && hasChildren;
+  const isStandaloneItem = !item.parent_item_id && !hasChildren;
+  const isChildItem = !!item.parent_item_id;
+  const shouldShowDetails = isStandaloneItem || isChildItem;
 
-  const handleEditClick = () => {
+  const handleEditClick = (stockItem: StockItem) => {
     if (!userPermissions?.can_manage_stock) {
       toast({
         title: "Permissão negada",
@@ -47,10 +52,10 @@ export const StockCard: React.FC<StockCardProps> = ({
       });
       return;
     }
-    onEdit(item);
+    onEdit(stockItem);
   };
 
-  const handleDeleteClick = () => {
+  const handleDeleteClick = (id: string) => {
     if (!userPermissions?.can_manage_stock) {
       toast({
         title: "Permissão negada",
@@ -59,10 +64,10 @@ export const StockCard: React.FC<StockCardProps> = ({
       });
       return;
     }
-    onDelete(item.id);
+    onDelete(id);
   };
   
-  const handleWithdrawClick = () => {
+  const handleWithdrawClick = (stockItem: StockItem) => {
     if (!userPermissions?.can_manage_stock) {
       toast({
         title: "Permissão negada",
@@ -71,7 +76,7 @@ export const StockCard: React.FC<StockCardProps> = ({
       });
       return;
     }
-    onWithdraw(item);
+    onWithdraw(stockItem);
   };
 
   const getStatusBadge = (status: string) => {
@@ -118,29 +123,6 @@ export const StockCard: React.FC<StockCardProps> = ({
     );
   };
 
-  const getCardClassName = () => {
-    let borderClass = "border-l-4 ";
-    switch (item.maintenance_status) {
-        case 'ok':
-          borderClass += "border-success bg-success/15";
-          break;
-        case 'low_stock':
-          borderClass += "border-warning bg-warning/40";
-          break;
-        case 'out_of_stock':
-        case 'defective':
-          borderClass += "border-destructive bg-destructive/40";
-          break;
-        case 'in_maintenance':
-          borderClass += "border-muted-foreground bg-muted/20";
-          break;
-        default:
-          borderClass += "border-gray-500";
-          break;
-    }
-    return cn("mb-4", borderClass);
-  };
-
   const getStockQuantityBadge = (stockItem: StockItem) => {
     let colorClass = "bg-success text-success-foreground";
     if (stockItem.current_quantity <= stockItem.minimum_stock && stockItem.current_quantity > 0) {
@@ -154,91 +136,105 @@ export const StockCard: React.FC<StockCardProps> = ({
       </span>
     );
   };
+
+  const renderItemDetails = (stockItem: StockItem, isChild = false) => {
+    const hasChildrenInDetails = childItems.some(c => c.parent_item_id === stockItem.id);
+    const isExpandableParentInDetails = !stockItem.parent_item_id && hasChildrenInDetails;
+    const isStandaloneItem = !stockItem.parent_item_id && !hasChildrenInDetails;
+    const isChildItem = !!stockItem.parent_item_id;
+    const shouldShowDetails = isStandaloneItem || isChildItem;
   
-  const renderItemDetails = (stockItem: StockItem, isChild = false) => (
-    <div key={stockItem.id} className={cn(
-      "p-4 border rounded-lg space-y-2",
-      isChild ? "bg-muted/30" : "bg-card",
-      isChild && "ml-4"
-    )}>
-      <div className="flex justify-between items-center text-sm">
-        <span className="font-bold flex items-center gap-2">
-          {childItems.length > 0 && !isChild && (
-            <ChevronRight
-              className={cn("h-3 w-3 transition-transform duration-200", { "rotate-90": isExpanded })}
-              onClick={() => setIsExpanded(!isExpanded)}
-            />
-          )}
-          {stockItem.name}
-        </span>
-        {getStatusBadge(stockItem.maintenance_status)}
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">Estoque:</span>
-        {getStockQuantityBadge(stockItem)}
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">Mínimo:</span>
-        <span className="font-bold">{stockItem.minimum_stock}</span>
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">Localização:</span>
-        <span className="font-bold">{stockItem.location}</span>
-      </div>
-      <div className="flex justify-between text-xs">
-        <span className="text-muted-foreground">Patrimônio:</span>
-        <span className="font-bold">{stockItem.asset_number || 'N/A'}</span>
-      </div>
-      <div className="flex justify-end gap-2 mt-4">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onWithdraw(stockItem)}
-          disabled={stockItem.current_quantity === 0}
-          className="w-1/3 h-7"
-        >
-          <Minus className="h-3 w-3" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => onEdit(stockItem)}
-          className="w-1/3 h-7"
-        >
-          <Pencil className="h-3 w-3" />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
+    return (
+      <div key={stockItem.id} className={cn(
+        "p-4 border rounded-lg space-y-2",
+        isChild ? "bg-muted/30" : "bg-card",
+        isChild && "ml-4"
+      )}>
+        <div className="flex justify-between items-center text-sm">
+          <span className="font-bold flex items-center gap-2">
+            {isExpandableParentInDetails && (
+              <ChevronRight
+                className={cn("h-3 w-3 transition-transform duration-200 cursor-pointer", { "rotate-90": isExpanded })}
+                onClick={() => setIsExpanded(!isExpanded)}
+              />
+            )}
+            {stockItem.name}
+          </span>
+          {shouldShowDetails && getStatusBadge(stockItem.maintenance_status)}
+        </div>
+        <div className="flex justify-between text-xs">
+          <span className="text-muted-foreground">Estoque:</span>
+          {getStockQuantityBadge(stockItem)}
+        </div>
+        {shouldShowDetails && (
+          <>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Mínimo:</span>
+              <span className="font-bold">{stockItem.minimum_stock}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Localização:</span>
+              <span className="font-bold">{stockItem.location}</span>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="text-muted-foreground">Patrimônio:</span>
+              <span className="font-bold">{stockItem.asset_number || 'N/A'}</span>
+            </div>
+          </>
+        )}
+        <div className="flex justify-end gap-2 mt-4">
+          {shouldShowDetails && (
             <Button
               size="sm"
               variant="outline"
-              className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-1/3 h-7"
+              onClick={() => handleWithdrawClick(stockItem)}
+              disabled={stockItem.current_quantity === 0}
+              className="w-1/3 h-7"
             >
-              <Trash2 className="h-3 w-3" />
+              <Minus className="h-3 w-3" />
             </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{stockItem.name}".
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => onDelete(stockItem.id)}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleEditClick(stockItem)}
+            className="w-1/3 h-7"
+          >
+            <Pencil className="h-3 w-3" />
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-1/3 h-7"
               >
-                Continuar
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{stockItem.name}".
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDeleteClick(stockItem.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Continuar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
-    </div>
-  );
-
+    );
+  };
+  
   return (
     <>
       {renderItemDetails(item)}
