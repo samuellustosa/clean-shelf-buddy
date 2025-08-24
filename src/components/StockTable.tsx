@@ -10,9 +10,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Pencil, Trash2, Box, Wrench, AlertCircle, XCircle } from 'lucide-react';
+import { Pencil, Trash2, Box, Wrench, AlertCircle, XCircle, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { StockCard } from './StockCard';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +31,7 @@ interface StockTableProps {
   stock: StockItem[];
   onEdit: (item: StockItem) => void;
   onDelete: (id: string) => void;
+  onWithdraw: (item: StockItem) => void;
   userPermissions: UserProfile['permissions'] | null;
 }
 
@@ -37,10 +39,11 @@ export const StockTable: React.FC<StockTableProps> = ({
   stock,
   onEdit,
   onDelete,
+  onWithdraw,
   userPermissions,
 }) => {
-  const { toast } = useToast();
   const isMobile = useIsMobile();
+  const { toast } = useToast();
 
   const handleEditClick = (item: StockItem) => {
     if (!userPermissions?.can_manage_stock) {
@@ -65,7 +68,7 @@ export const StockTable: React.FC<StockTableProps> = ({
     }
     onDelete(id);
   };
-  
+
   const getStatusBadge = (item: StockItem) => {
     let variant: "default" | "destructive" | "secondary" | "outline" | null = "default";
     let colorClass = "";
@@ -131,160 +134,125 @@ export const StockTable: React.FC<StockTableProps> = ({
   };
 
   return (
-    <div className="border rounded-lg font-semibold">
-      <Table>
-        {/* Mostra o cabeçalho apenas em telas maiores que md */}
-        <TableHeader className={cn(isMobile && "hidden")}>
-          <TableRow>
-            <TableHead className="font-bold">Item</TableHead>
-            <TableHead className="font-bold">Categoria</TableHead>
-            <TableHead className="font-bold text-center">Estoque</TableHead>
-            <TableHead className="font-bold text-center">Estoque Mínimo</TableHead>
-            <TableHead className="font-bold">Localização</TableHead>
-            <TableHead className="font-bold">Patrimônio</TableHead>
-            <TableHead className="font-bold text-center">Status</TableHead>
-            <TableHead className="text-right font-bold">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
+    <>
+      {isMobile ? (
+        <div className="space-y-4">
           {stock.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                Nenhum item de estoque encontrado!
-              </TableCell>
-            </TableRow>
+            <div className="text-center py-8 text-muted-foreground">
+              Nenhum item de estoque encontrado!
+            </div>
           ) : (
-            stock.map((item, index) => (
-              <React.Fragment key={item.id}>
-                {/* Visualização de desktop (tabela completa) */}
-                <TableRow 
-                  className={cn("hidden md:table-row transition-colors hover:bg-muted/50 border-b border-gray-500", index % 2 === 0 ? "bg-blue-50/50 dark:bg-slate-800/50" : "bg-card")}
-                >
-                  <TableCell className="font-bold">{item.name}</TableCell>
-                  <TableCell>{item.category}</TableCell>
-                  <TableCell className="text-center">
-                    {getStockQuantityBadge(item)}
-                  </TableCell>
-                  <TableCell className={cn("text-center font-bold")}>
-                    <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted")}>
-                      {item.minimum_stock}
-                    </span>
-                  </TableCell>
-                  <TableCell>{item.location}</TableCell>
-                  <TableCell>{item.asset_number || 'N/A'}</TableCell>
-                  <TableCell className="text-center">{getStatusBadge(item)}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleEditClick(item)}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                            onClick={() => handleDeleteClick(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDeleteClick(item.id)}
-                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            >
-                              Continuar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
+            stock.map((item) => (
+              <StockCard
+                key={item.id}
+                item={item}
+                onEdit={handleEditClick}
+                onDelete={handleDeleteClick}
+                onWithdraw={() => onWithdraw(item)}
+                userPermissions={userPermissions}
+              />
+            ))
+          )}
+        </div>
+      ) : (
+        <div className="border rounded-lg font-semibold">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="font-bold">Item</TableHead>
+                <TableHead className="font-bold">Categoria</TableHead>
+                <TableHead className="font-bold text-center">Estoque</TableHead>
+                <TableHead className="font-bold text-center">Estoque Mínimo</TableHead>
+                <TableHead className="font-bold">Localização</TableHead>
+                <TableHead className="font-bold">Patrimônio</TableHead>
+                <TableHead className="font-bold text-center">Status</TableHead>
+                <TableHead className="text-right font-bold">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {stock.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    Nenhum item de estoque encontrado!
                   </TableCell>
                 </TableRow>
-
-                {/* Visualização de celular (layout empilhado) */}
-                <div className={cn("md:hidden border-b last:border-b-0 p-4 space-y-2", index % 2 === 0 ? "bg-blue-50/50 dark:bg-slate-800/50" : "bg-card")}>
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-bold text-lg">{item.name}</h4>
-                    {getStatusBadge(item)}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <span className="font-semibold">Categoria:</span> {item.category}
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="font-semibold">Em Estoque:</span>
+              ) : (
+                stock.map((item, index) => (
+                  <TableRow
+                    key={item.id}
+                    className={cn(
+                      "transition-colors hover:bg-muted/50 border-b border-gray-500",
+                      index % 2 === 0 ? "bg-blue-50/50 dark:bg-slate-800/50" : "bg-card"
+                    )}
+                  >
+                    <TableCell className="font-bold">{item.name}</TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell className="text-center">
                       {getStockQuantityBadge(item)}
-                    </div>
-                    <div>
-                      <span className="font-semibold">Estoque Mínimo:</span>
-                      <Badge variant="secondary" className="font-bold ml-1">{item.minimum_stock}</Badge>
-                    </div>
-                    <div>
-                      <span className="font-semibold">Localização:</span> {item.location}
-                    </div>
-                    <div>
-                      <span className="font-semibold">Patrimônio:</span> {item.asset_number || 'N/A'}
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2 mt-4">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleEditClick(item)}
-                      className="w-full"
-                    >
-                      <Pencil className="h-4 w-4" /> Editar
-                    </Button>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+                    </TableCell>
+                    <TableCell className={cn("text-center font-bold")}>
+                      <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-bold bg-muted")}>
+                        {item.minimum_stock}
+                      </span>
+                    </TableCell>
+                    <TableCell>{item.location}</TableCell>
+                    <TableCell>{item.asset_number || 'N/A'}</TableCell>
+                    <TableCell className="text-center">{getStatusBadge(item)}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-full"
-                          onClick={() => handleDeleteClick(item.id)}
+                          onClick={() => onWithdraw(item)}
+                          disabled={item.current_quantity === 0}
                         >
-                          <Trash2 className="h-4 w-4" /> Deletar
+                          <Minus className="h-4 w-4" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => handleDeleteClick(item.id)}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                          >
-                            Continuar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </div>
-                </div>
-              </React.Fragment>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditClick(item)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                              onClick={() => handleDeleteClick(item.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteClick(item.id)}
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                              >
+                                Continuar
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </>
   );
 };

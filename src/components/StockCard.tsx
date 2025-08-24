@@ -2,7 +2,7 @@ import { StockItem, UserProfile } from '@/types/equipment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -21,6 +21,7 @@ interface StockCardProps {
   item: StockItem;
   onEdit: (item: StockItem) => void;
   onDelete: (id: string) => void;
+  onWithdraw: (item: StockItem) => void;
   userPermissions: UserProfile['permissions'] | null;
 }
 
@@ -28,6 +29,7 @@ export const StockCard: React.FC<StockCardProps> = ({
   item,
   onEdit,
   onDelete,
+  onWithdraw,
   userPermissions,
 }) => {
   const { toast } = useToast();
@@ -54,6 +56,18 @@ export const StockCard: React.FC<StockCardProps> = ({
       return;
     }
     onDelete(item.id);
+  };
+  
+  const handleWithdrawClick = () => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para retirar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onWithdraw(item);
   };
 
   const getStatusBadge = () => {
@@ -169,6 +183,15 @@ export const StockCard: React.FC<StockCardProps> = ({
           )}
         </div>
         <div className="flex justify-between gap-2 mt-4">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleWithdrawClick}
+            className="w-full"
+            disabled={item.current_quantity === 0}
+          >
+            <Minus className="h-4 w-4 mr-2" /> Retirar
+          </Button>
           <Button
             size="sm"
             variant="outline"

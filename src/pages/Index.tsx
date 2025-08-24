@@ -1,5 +1,3 @@
-// src/pages/Index.tsx
-
 import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useStock } from '@/hooks/useStock';
@@ -28,6 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { DashboardSkeleton } from '@/components/DashboardSkeleton';
 import { usePagination } from '@/hooks/usePagination';
+import { WithdrawalModal } from '@/components/WithdrawalModal';
 
 const Index = () => {
   const [equipmentFilters, setEquipmentFilters] = useState<EquipmentFilters>({
@@ -63,6 +62,7 @@ const Index = () => {
     updateStockItem,
     deleteStockItem,
     refetch: refetchStock,
+    withdrawStockItem,
   } = useStock();
 
   const { toast } = useToast();
@@ -71,9 +71,11 @@ const Index = () => {
   const [isEquipmentFormOpen, setIsEquipmentFormOpen] = useState(false);
   const [isStockFormOpen, setIsStockFormOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isWithdrawalModalOpen, setIsWithdrawalModalOpen] = useState(false);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [editingEquipment, setEditingEquipment] = useState<Equipment | null>(null);
   const [editingStockItem, setEditingStockItem] = useState<StockItem | null>(null);
+  const [selectedStockItem, setSelectedStockItem] = useState<StockItem | null>(null);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -195,6 +197,23 @@ const Index = () => {
     setSelectedEquipment(equipment);
     setIsHistoryOpen(true);
   };
+  
+  const handleOpenWithdrawalModal = (item: StockItem) => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para retirar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    setSelectedStockItem(item);
+    setIsWithdrawalModalOpen(true);
+  };
+
+  const handleWithdrawalSubmit = (id: string, withdrawalData: { quantity: number; reason: string; responsible_by: string }) => {
+    withdrawStockItem(id, withdrawalData);
+  };
 
   const handleCloseEquipmentForm = () => {
     setIsEquipmentFormOpen(false);
@@ -206,6 +225,11 @@ const Index = () => {
     setIsStockFormOpen(false);
     setEditingStockItem(null);
     setFormMode('create');
+  };
+  
+  const handleCloseWithdrawalModal = () => {
+    setIsWithdrawalModalOpen(false);
+    setSelectedStockItem(null);
   };
 
   useEffect(() => {
@@ -440,6 +464,7 @@ const Index = () => {
                 onEdit={handleEditStockItem}
                 onDelete={handleDeleteStockItem}
                 userPermissions={userPermissions}
+                onWithdraw={handleOpenWithdrawalModal}
               />
             )}
           </TabsContent>
@@ -468,6 +493,14 @@ const Index = () => {
           onSubmit={handleSubmitStockItem}
           item={editingStockItem}
           mode={formMode}
+        />
+
+        <WithdrawalModal
+          isOpen={isWithdrawalModalOpen}
+          onClose={handleCloseWithdrawalModal}
+          item={selectedStockItem}
+          onWithdraw={handleWithdrawalSubmit}
+          uniqueResponsibles={uniqueResponsibles}
         />
 
         <HistoryModal

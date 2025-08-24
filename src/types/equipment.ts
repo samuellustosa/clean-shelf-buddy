@@ -1,3 +1,4 @@
+// src/types/equipment.ts
 export interface Equipment {
   id: string;
   name: string;
@@ -58,3 +59,21 @@ export interface EquipmentFilters {
 }
 
 export type EquipmentStatus = 'ok' | 'overdue' | 'warning';
+
+// Interface para dados de retirada
+export interface WithdrawalData {
+  item_id: string;
+  quantity: number;
+  reason: string;
+  responsible: string;
+}
+
+// Nova interface para o histórico de estoque
+export interface StockHistory {
+  id: string;
+  item_id: string;
+  change: number; // Quantidade positiva (entrada) ou negativa (saída)
+  reason: string | null;
+  responsible_by: string;
+  created_at: string;
+}

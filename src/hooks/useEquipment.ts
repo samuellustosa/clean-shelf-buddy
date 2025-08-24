@@ -18,7 +18,7 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
 
   const fetchUserPermissions = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } = {} } = await supabase.auth.getUser();
       if (user) {
         const { data, error } = await supabase
           .from('profiles')
@@ -39,7 +39,8 @@ export const useEquipment = (currentPage: number, itemsPerPage: number, filters:
         can_delete: false,
         can_view: true,
         can_mark_cleaned: false,
-        can_manage_users: false
+        can_manage_users: false,
+        can_manage_stock: false,
       });
     }
   }, []);
