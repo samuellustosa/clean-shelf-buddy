@@ -21,7 +21,7 @@ export interface CleaningHistory {
 // Define um tipo específico para os status de manutenção do estoque
 export type MaintenanceStatus = 'ok' | 'low_stock' | 'out_of_stock' | 'in_maintenance' | 'defective';
 
-// Nova interface para os itens de estoque
+// NOVA INTERFACE: Adicionado parent_item_id para o agrupamento
 export interface StockItem {
   id: string;
   name: string;
@@ -33,6 +33,7 @@ export interface StockItem {
   maintenance_status: MaintenanceStatus;
   created_at: string;
   updated_at: string;
+  parent_item_id: string | null; // Novo campo para agrupar itens
 }
 
 // Nova interface para o perfil do usuário
@@ -46,7 +47,7 @@ export interface UserProfile {
     can_view: boolean;
     can_mark_cleaned: boolean;
     can_manage_users: boolean;
-    can_manage_stock: boolean; // Nova permissão adicionada
+    can_manage_stock: boolean;
   };
   email: string;
 }

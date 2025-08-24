@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useEquipment } from '@/hooks/useEquipment';
 import { useStock } from '@/hooks/useStock';
-import { Equipment, EquipmentFilters, StockItem } from '@/types/equipment';
+import { Equipment, EquipmentFilters, StockItem, MaintenanceStatus } from '@/types/equipment';
 import { EquipmentTable } from '@/components/EquipmentTable';
 import { EquipmentForm } from '@/components/EquipmentForm';
 import { StockTable } from '@/components/StockTable';
@@ -63,6 +63,8 @@ const Index = () => {
     deleteStockItem,
     refetch: refetchStock,
     withdrawStockItem,
+    parentItems,
+    childItems,
   } = useStock();
 
   const { toast } = useToast();
@@ -149,11 +151,11 @@ const Index = () => {
     }
   };
   
-  const handleSubmitStockItem = (itemData: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>) => {
+  const handleSubmitStockItem = (itemData: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>, maintenanceStatus: MaintenanceStatus) => {
     if (formMode === 'create') {
-      addStockItem(itemData);
+      addStockItem(itemData, maintenanceStatus);
     } else if (editingStockItem) {
-      updateStockItem(editingStockItem.id, itemData);
+      updateStockItem(editingStockItem.id, { ...itemData, maintenance_status: maintenanceStatus });
     }
   };
 
@@ -460,7 +462,8 @@ const Index = () => {
                 <div className="text-center py-8">Carregando itens de estoque...</div>
             ) : (
               <StockTable
-                stock={paginatedStock}
+                parentItems={parentItems}
+                childItems={childItems}
                 onEdit={handleEditStockItem}
                 onDelete={handleDeleteStockItem}
                 userPermissions={userPermissions}
@@ -493,6 +496,7 @@ const Index = () => {
           onSubmit={handleSubmitStockItem}
           item={editingStockItem}
           mode={formMode}
+          parentItems={parentItems}
         />
 
         <WithdrawalModal

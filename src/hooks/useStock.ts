@@ -13,6 +13,8 @@ export const useStock = () => {
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
   const [loading, setLoading] = useState(false);
   const [userPermissions, setUserPermissions] = useState<UserProfile['permissions'] | null>(null);
+  const [parentItems, setParentItems] = useState<StockItem[]>([]);
+  const [childItems, setChildItems] = useState<StockItem[]>([]);
   const { toast } = useToast();
 
   const fetchUserPermissions = useCallback(async () => {
@@ -52,7 +54,14 @@ export const useStock = () => {
         .select('*');
 
       if (error) throw error;
-      setStock(data as StockItem[] || []);
+      
+      const allItems = data as StockItem[] || [];
+      const parents = allItems.filter(item => item.parent_item_id === null);
+      const children = allItems.filter(item => item.parent_item_id !== null);
+
+      setStock(allItems);
+      setParentItems(parents);
+      setChildItems(children);
     } catch (error) {
       console.error('Error fetching stock items:', error);
       toast({
@@ -90,13 +99,16 @@ export const useStock = () => {
     }
   }, [userPermissions, fetchStockItems, fetchStockHistory]);
 
-  const getStockItemStatus = (item: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>): MaintenanceStatus => {
+  const getStockItemStatus = (item: { current_quantity: number; minimum_stock: number; manual_status?: MaintenanceStatus }): MaintenanceStatus => {
+    if (item.manual_status === 'in_maintenance' || item.manual_status === 'defective') {
+      return item.manual_status;
+    }
     if (item.current_quantity === 0) return 'out_of_stock';
     if (item.current_quantity <= item.minimum_stock) return 'low_stock';
     return 'ok';
   };
   
-  const addStockItem = useCallback(async (newItem: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>) => {
+  const addStockItem = useCallback(async (newItem: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>, manualStatus: MaintenanceStatus) => {
     if (!userPermissions?.can_manage_stock) {
       toast({
         title: "Permissão negada",
@@ -107,7 +119,7 @@ export const useStock = () => {
     }
     setLoading(true);
     try {
-      const maintenanceStatus = getStockItemStatus(newItem);
+      const maintenanceStatus = getStockItemStatus({ ...newItem, manual_status: manualStatus });
       const { data, error } = await supabase
         .from('stock_items')
         .insert([{ ...newItem, maintenance_status: maintenanceStatus }])
@@ -121,6 +133,7 @@ export const useStock = () => {
         title: "Sucesso",
         description: "Item de estoque adicionado com sucesso"
       });
+      fetchStockItems();
     } catch (error) {
       console.error('Error adding stock item:', error);
       toast({
@@ -131,7 +144,7 @@ export const useStock = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, userPermissions]);
+  }, [toast, userPermissions, fetchStockItems]);
 
   const updateStockItem = useCallback(async (id: string, updates: Partial<StockItem>) => {
     if (!userPermissions?.can_manage_stock) {
@@ -146,11 +159,11 @@ export const useStock = () => {
     try {
       const itemToUpdate = stock.find(item => item.id === id);
       const updatedItem = { ...itemToUpdate, ...updates };
-      const maintenanceStatus = getStockItemStatus(updatedItem as Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>);
+      const maintenanceStatus = getStockItemStatus({ current_quantity: updatedItem.current_quantity, minimum_stock: updatedItem.minimum_stock, manual_status: updates.maintenance_status });
 
       const { data, error } = await supabase
         .from('stock_items')
-        .update({ ...updates, maintenance_status: maintenanceStatus })
+        .update({ ...updates, maintenance_status: maintenanceStatus, updated_at: new Date().toISOString() })
         .eq('id', id)
         .select()
         .single();
@@ -162,6 +175,7 @@ export const useStock = () => {
         title: "Sucesso",
         description: "Item de estoque atualizado com sucesso"
       });
+      fetchStockItems();
     } catch (error) {
       console.error('Error updating stock item:', error);
       toast({
@@ -172,7 +186,7 @@ export const useStock = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, userPermissions, stock]);
+  }, [toast, userPermissions, stock, fetchStockItems]);
 
   const deleteStockItem = useCallback(async (id: string) => {
     if (!userPermissions?.can_manage_stock) {
@@ -185,6 +199,18 @@ export const useStock = () => {
     }
     setLoading(true);
     try {
+      // Primeiro, deletar todos os registros de histórico de estoque associados
+      const { error: historyError } = await supabase
+        .from('stock_history')
+        .delete()
+        .eq('item_id', id);
+
+      if (historyError) {
+        console.error('Erro ao deletar histórico:', historyError);
+        throw new Error('Não foi possível deletar o histórico do item. Verifique as permissões.');
+      }
+
+      // Em seguida, deletar o item principal da tabela de estoque
       const { error } = await supabase
         .from('stock_items')
         .delete()
@@ -197,17 +223,18 @@ export const useStock = () => {
         title: "Sucesso",
         description: "Item de estoque removido com sucesso"
       });
+      fetchStockItems();
     } catch (error) {
       console.error('Error deleting stock item:', error);
       toast({
         title: "Erro",
-        description: "Erro ao remover item de estoque",
+        description: (error as Error).message || "Erro ao remover item de estoque",
         variant: "destructive"
       });
     } finally {
       setLoading(false);
     }
-  }, [toast, userPermissions]);
+  }, [toast, userPermissions, fetchStockItems]);
 
   const withdrawStockItem = useCallback(async (id: string, withdrawal: { quantity: number; reason: string; responsible_by: string; }) => {
     if (!userPermissions?.can_manage_stock) {
@@ -237,7 +264,7 @@ export const useStock = () => {
         .from('stock_items')
         .update({
           current_quantity: newQuantity,
-          maintenance_status: getStockItemStatus({ ...itemToUpdate, current_quantity: newQuantity }),
+          maintenance_status: getStockItemStatus({ current_quantity: newQuantity, minimum_stock: itemToUpdate.minimum_stock, manual_status: itemToUpdate.maintenance_status }),
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
@@ -262,6 +289,7 @@ export const useStock = () => {
         title: "Sucesso",
         description: "Item de estoque retirado com sucesso."
       });
+      fetchStockItems();
     } catch (error: any) {
       console.error('Error withdrawing stock item:', error);
       toast({
@@ -272,7 +300,7 @@ export const useStock = () => {
     } finally {
       setLoading(false);
     }
-  }, [toast, userPermissions, stock]);
+  }, [toast, userPermissions, stock, fetchStockItems]);
 
   const refetch = useCallback(() => {
     if (userPermissions?.can_view) {
@@ -290,6 +318,8 @@ export const useStock = () => {
     updateStockItem,
     deleteStockItem,
     withdrawStockItem,
+    parentItems,
+    childItems,
     refetch,
   };
 };

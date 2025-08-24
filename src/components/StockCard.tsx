@@ -2,7 +2,7 @@ import { StockItem, UserProfile } from '@/types/equipment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Minus } from 'lucide-react';
+import { Pencil, Trash2, Minus, ChevronRight, Box, Wrench, AlertCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -16,6 +16,7 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useState } from 'react';
 
 interface StockCardProps {
   item: StockItem;
@@ -23,6 +24,7 @@ interface StockCardProps {
   onDelete: (id: string) => void;
   onWithdraw: (item: StockItem) => void;
   userPermissions: UserProfile['permissions'] | null;
+  childItems: StockItem[];
 }
 
 export const StockCard: React.FC<StockCardProps> = ({
@@ -31,8 +33,10 @@ export const StockCard: React.FC<StockCardProps> = ({
   onDelete,
   onWithdraw,
   userPermissions,
+  childItems,
 }) => {
   const { toast } = useToast();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleEditClick = () => {
     if (!userPermissions?.can_manage_stock) {
@@ -70,44 +74,45 @@ export const StockCard: React.FC<StockCardProps> = ({
     onWithdraw(item);
   };
 
-  const getStatusBadge = () => {
-    let variant: "default" | "destructive" | "secondary" | "outline" | null = "default";
+  const getStatusBadge = (status: string) => {
     let colorClass = "";
     let text = "";
+    let icon = null;
 
-    switch (item.maintenance_status) {
+    switch (status) {
       case 'ok':
-        variant = "default";
-        colorClass = "bg-success text-success-foreground hover:bg-success/80";
+        colorClass = "bg-success hover:bg-success/80 text-success-foreground";
         text = "Em Estoque";
+        icon = <Box className="h-3 w-3" />;
         break;
       case 'low_stock':
-        variant = "default";
-        colorClass = "bg-warning text-warning-foreground hover:bg-warning/80";
+        colorClass = "bg-warning hover:bg-warning/80 text-warning-foreground";
         text = "Estoque Baixo";
+        icon = <AlertCircle className="h-3 w-3" />;
         break;
       case 'out_of_stock':
-        variant = "destructive";
-        colorClass = "bg-destructive text-destructive-foreground hover:bg-destructive/80";
+        colorClass = "bg-destructive hover:bg-destructive/80 text-destructive-foreground";
         text = "Esgotado";
+        icon = <XCircle className="h-3 w-3" />;
         break;
       case 'in_maintenance':
-        variant = "secondary";
         colorClass = "bg-muted text-muted-foreground";
         text = "Em Manutenção";
+        icon = <Wrench className="h-3 w-3" />;
         break;
       case 'defective':
-        variant = "destructive";
-        colorClass = "bg-destructive text-destructive-foreground hover:bg-destructive/80";
+        colorClass = "bg-destructive hover:bg-destructive/80 text-destructive-foreground";
         text = "Com Defeito";
+        icon = <Trash2 className="h-3 w-3" />;
         break;
       default:
-        variant = "outline";
+        colorClass = "border text-foreground";
         text = "Desconhecido";
     }
 
     return (
-      <Badge variant={variant} className={cn(colorClass)}>
+      <Badge className={cn("flex items-center gap-1 text-xs whitespace-nowrap px-2 py-1", colorClass)}>
+        {icon}
         {text}
       </Badge>
     );
@@ -136,101 +141,108 @@ export const StockCard: React.FC<StockCardProps> = ({
     return cn("mb-4", borderClass);
   };
 
-  const getStockQuantityBadge = () => {
+  const getStockQuantityBadge = (stockItem: StockItem) => {
     let colorClass = "bg-success text-success-foreground";
-    if (item.current_quantity <= item.minimum_stock && item.current_quantity > 0) {
+    if (stockItem.current_quantity <= stockItem.minimum_stock && stockItem.current_quantity > 0) {
       colorClass = "bg-warning text-warning-foreground";
-    } else if (item.current_quantity === 0) {
+    } else if (stockItem.current_quantity === 0) {
       colorClass = "bg-destructive text-destructive-foreground";
     }
     return (
       <span className={cn("inline-flex items-center rounded-md px-2 py-1 text-xs font-bold", colorClass)}>
-        {item.current_quantity}
+        {stockItem.current_quantity}
       </span>
     );
   };
+  
+  const renderItemDetails = (stockItem: StockItem, isChild = false) => (
+    <div key={stockItem.id} className={cn(
+      "p-4 border rounded-lg space-y-2",
+      isChild ? "bg-muted/30" : "bg-card",
+      isChild && "ml-4"
+    )}>
+      <div className="flex justify-between items-center text-sm">
+        <span className="font-bold flex items-center gap-2">
+          {childItems.length > 0 && !isChild && (
+            <ChevronRight
+              className={cn("h-3 w-3 transition-transform duration-200", { "rotate-90": isExpanded })}
+              onClick={() => setIsExpanded(!isExpanded)}
+            />
+          )}
+          {stockItem.name}
+        </span>
+        {getStatusBadge(stockItem.maintenance_status)}
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">Estoque:</span>
+        {getStockQuantityBadge(stockItem)}
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">Mínimo:</span>
+        <span className="font-bold">{stockItem.minimum_stock}</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">Localização:</span>
+        <span className="font-bold">{stockItem.location}</span>
+      </div>
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">Patrimônio:</span>
+        <span className="font-bold">{stockItem.asset_number || 'N/A'}</span>
+      </div>
+      <div className="flex justify-end gap-2 mt-4">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onWithdraw(stockItem)}
+          disabled={stockItem.current_quantity === 0}
+          className="w-1/3 h-7"
+        >
+          <Minus className="h-3 w-3" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onEdit(stockItem)}
+          className="w-1/3 h-7"
+        >
+          <Pencil className="h-3 w-3" />
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-1/3 h-7"
+            >
+              <Trash2 className="h-3 w-3" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{stockItem.name}".
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => onDelete(stockItem.id)}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Continuar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </div>
+  );
 
   return (
-    <Card className={getCardClassName()}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">{item.name}</CardTitle>
-          {getStatusBadge()}
-        </div>
-        <div className="text-sm text-muted-foreground flex justify-between">
-          <span>Categoria: {item.category}</span>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-2">
-          <div className="text-sm flex justify-between">
-            <span className="font-bold">Em estoque:</span>
-            {getStockQuantityBadge()}
-          </div>
-          <div className="text-sm flex justify-between">
-            <span className="font-bold">Estoque Mínimo:</span>
-            <Badge variant="secondary" className="font-bold">{item.minimum_stock}</Badge>
-          </div>
-          <div className="text-sm">
-            <span className="font-bold">Localização:</span>{' '}
-            {item.location}
-          </div>
-          {item.asset_number && (
-            <div className="text-sm">
-              <span className="font-bold">Nº de Patrimônio:</span>{' '}
-              {item.asset_number}
-            </div>
-          )}
-        </div>
-        <div className="flex justify-between gap-2 mt-4">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleWithdrawClick}
-            className="w-full"
-            disabled={item.current_quantity === 0}
-          >
-            <Minus className="h-4 w-4 mr-2" /> Retirar
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleEditClick}
-            className="w-full"
-          >
-            <Pencil className="h-4 w-4 mr-2" /> Editar
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                size="sm"
-                variant="outline"
-                className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-full"
-                onClick={() => handleDeleteClick()}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Deletar
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Isso irá remover permanentemente o item de estoque "{item.name}".
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => onDelete(item.id)}
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                >
-                  Continuar
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      </CardContent>
-    </Card>
+    <>
+      {renderItemDetails(item)}
+      {isExpanded && childItems.map(child => renderItemDetails(child, true))}
+    </>
   );
 };

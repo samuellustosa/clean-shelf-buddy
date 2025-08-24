@@ -16,14 +16,18 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { StockItem } from '@/types/equipment';
+import { StockItem, MaintenanceStatus } from '@/types/equipment';
 
 interface StockFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (item: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>) => void;
+  onSubmit: (
+    item: Omit<StockItem, 'id' | 'created_at' | 'updated_at' | 'maintenance_status'>,
+    maintenanceStatus: MaintenanceStatus
+  ) => void;
   item?: StockItem;
   mode: 'create' | 'edit';
+  parentItems: StockItem[];
 }
 
 export const StockForm: React.FC<StockFormProps> = ({
@@ -32,6 +36,7 @@ export const StockForm: React.FC<StockFormProps> = ({
   onSubmit,
   item,
   mode,
+  parentItems,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +45,8 @@ export const StockForm: React.FC<StockFormProps> = ({
     minimum_stock: 0,
     location: '',
     asset_number: '',
+    parent_item_id: null as string | null,
+    maintenance_status: 'ok' as MaintenanceStatus,
   });
 
   useEffect(() => {
@@ -51,9 +58,10 @@ export const StockForm: React.FC<StockFormProps> = ({
         minimum_stock: item.minimum_stock,
         location: item.location,
         asset_number: item.asset_number || '',
+        parent_item_id: item.parent_item_id || null,
+        maintenance_status: item.maintenance_status || 'ok',
       });
     } else if (mode === 'create' && isOpen) {
-      // Reseta o formulário para o estado inicial quando o modo é 'create'
       setFormData({
         name: '',
         category: '',
@@ -61,13 +69,16 @@ export const StockForm: React.FC<StockFormProps> = ({
         minimum_stock: 0,
         location: '',
         asset_number: '',
+        parent_item_id: null,
+        maintenance_status: 'ok',
       });
     }
   }, [item, mode, isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    const { maintenance_status, ...dataWithoutStatus } = formData;
+    onSubmit(dataWithoutStatus, maintenance_status);
     onClose();
   };
 
@@ -79,16 +90,22 @@ export const StockForm: React.FC<StockFormProps> = ({
     }));
   };
   
-  const handleSelectChange = (key: 'category', value: string) => {
+  const handleSelectChange = (key: 'category' | 'parent_item_id' | 'maintenance_status', value: string | null) => {
     setFormData(prev => ({
       ...prev,
       [key]: value
     }));
   };
 
-  // Valores de exemplo para categorias. Em uma aplicação real, estes viriam do banco de dados.
   const categories = ['Periféricos', 'Toners', 'Cabos', 'Equipamentos', 'Outros'];
-  const maintenanceStatusOptions = ['ok', 'low_stock', 'out_of_stock', 'in_maintenance', 'defective'];
+  
+  const maintenanceStatusMap = {
+    ok: 'Em estoque',
+    in_maintenance: 'Em manutenção',
+    defective: 'Com defeito'
+  };
+
+  const maintenanceStatusOptions = ['in_maintenance', 'defective'];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -171,6 +188,48 @@ export const StockForm: React.FC<StockFormProps> = ({
               onChange={handleChange}
               placeholder="Ex: 123456"
             />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="maintenance_status">Status de Manutenção</Label>
+            <Select
+              value={formData.maintenance_status === 'ok' ? 'null' : formData.maintenance_status}
+              onValueChange={(value) => handleSelectChange('maintenance_status', value === 'null' ? 'ok' as MaintenanceStatus : value as MaintenanceStatus)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione o status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">Nenhum (Em estoque)</SelectItem>
+                {maintenanceStatusOptions.map(status => (
+                  <SelectItem key={status} value={status}>
+                    {maintenanceStatusMap[status]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="parent_item_id">Item Pai (Agrupar)</Label>
+            <Select
+              value={formData.parent_item_id || "null"}
+              onValueChange={(value) => handleSelectChange('parent_item_id', value === "null" ? null : value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um item pai (Opcional)" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="null">Nenhum (Item principal)</SelectItem>
+                {parentItems
+                  .filter(p => p.id !== item?.id)
+                  .map(p => (
+                    <SelectItem key={p.id} value={p.id}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
           </div>
           
           <DialogFooter>
