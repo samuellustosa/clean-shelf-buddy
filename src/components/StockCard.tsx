@@ -197,7 +197,7 @@ export const StockCard: React.FC<StockCardProps> = ({
           </>
         )}
         <div className="flex justify-end gap-2 mt-4">
-          {isParent && userPermissions?.can_manage_stock && (
+          {isExpandableParentInDetails && userPermissions?.can_manage_stock && (
             <Button
               size="sm"
               variant="outline"
