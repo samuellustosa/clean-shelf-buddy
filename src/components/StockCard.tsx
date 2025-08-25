@@ -2,7 +2,7 @@ import { StockItem, UserProfile } from '@/types/equipment';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, Minus, ChevronRight, Box, Wrench, AlertCircle, XCircle } from 'lucide-react';
+import { Pencil, Trash2, Minus, ChevronRight, Plus, Box, Wrench, AlertCircle, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
@@ -23,6 +23,7 @@ interface StockCardProps {
   onEdit: (item: StockItem) => void;
   onDelete: (id: string) => void;
   onWithdraw: (item: StockItem) => void;
+  onAddChild: (parentId: string) => void;
   userPermissions: UserProfile['permissions'] | null;
   childItems: StockItem[];
 }
@@ -32,6 +33,7 @@ export const StockCard: React.FC<StockCardProps> = ({
   onEdit,
   onDelete,
   onWithdraw,
+  onAddChild,
   userPermissions,
   childItems,
 }) => {
@@ -77,6 +79,18 @@ export const StockCard: React.FC<StockCardProps> = ({
       return;
     }
     onWithdraw(stockItem);
+  };
+  
+  const handleAddChildClick = (parentId: string) => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para adicionar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onAddChild(parentId);
   };
 
   const getStatusBadge = (status: string) => {
@@ -183,13 +197,24 @@ export const StockCard: React.FC<StockCardProps> = ({
           </>
         )}
         <div className="flex justify-end gap-2 mt-4">
+          {isParent && userPermissions?.can_manage_stock && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleAddChildClick(stockItem.id)}
+              title="Adicionar Sub-Item"
+              className="w-1/3 h-7"
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          )}
           {shouldShowDetails && (
             <Button
               size="sm"
               variant="outline"
               onClick={() => handleWithdrawClick(stockItem)}
               disabled={stockItem.current_quantity === 0}
-              className="w-1/3 h-7"
+              className={cn("h-7", isParent ? "w-1/3" : "w-1/2")}
             >
               <Minus className="h-3 w-3" />
             </Button>
@@ -198,7 +223,7 @@ export const StockCard: React.FC<StockCardProps> = ({
             size="sm"
             variant="outline"
             onClick={() => handleEditClick(stockItem)}
-            className="w-1/3 h-7"
+            className={cn("h-7", isParent ? "w-1/3" : "w-1/2")}
           >
             <Pencil className="h-3 w-3" />
           </Button>
@@ -207,7 +232,7 @@ export const StockCard: React.FC<StockCardProps> = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="text-destructive hover:bg-destructive hover:text-destructive-foreground w-1/3 h-7"
+                className={cn("text-destructive hover:bg-destructive hover:text-destructive-foreground h-7", isParent ? "w-1/3" : "w-1/2")}
               >
                 <Trash2 className="h-3 w-3" />
               </Button>

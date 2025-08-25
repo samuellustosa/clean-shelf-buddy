@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Pencil, Trash2, Box, Wrench, AlertCircle, XCircle, Minus, ChevronRight } from 'lucide-react';
+import { Pencil, Trash2, Box, Wrench, AlertCircle, XCircle, Minus, ChevronRight, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import {
@@ -33,6 +33,7 @@ interface StockTableProps {
   onEdit: (item: StockItem) => void;
   onDelete: (id: string) => void;
   onWithdraw: (item: StockItem) => void;
+  onAddChild: (parentId: string) => void;
   userPermissions: UserProfile['permissions'] | null;
 }
 
@@ -42,6 +43,7 @@ export const StockTable: React.FC<StockTableProps> = ({
   onEdit,
   onDelete,
   onWithdraw,
+  onAddChild,
   userPermissions,
 }) => {
   const isMobile = useIsMobile();
@@ -70,6 +72,18 @@ export const StockTable: React.FC<StockTableProps> = ({
       return;
     }
     onEdit(item);
+  };
+  
+  const handleAddChildClick = (parentId: string) => {
+    if (!userPermissions?.can_manage_stock) {
+      toast({
+        title: "Permissão negada",
+        description: "Você não tem permissão para adicionar itens de estoque.",
+        variant: "destructive"
+      });
+      return;
+    }
+    onAddChild(parentId);
   };
 
   const handleDeleteClick = (id: string) => {
@@ -146,9 +160,20 @@ export const StockTable: React.FC<StockTableProps> = ({
     const hasChildren = childItems.some(c => c.parent_item_id === item.id);
     const isStandaloneItem = !item.parent_item_id && !hasChildren;
     const isChildItem = !!item.parent_item_id;
+    const isExpandableParent = !item.parent_item_id && hasChildren;
 
     return (
       <div className="flex justify-end gap-2">
+        {isExpandableParent && userPermissions?.can_manage_stock && (
+           <Button
+            size="sm"
+            variant="outline"
+            onClick={(e) => { e.stopPropagation(); handleAddChildClick(item.id); }}
+            title="Adicionar Sub-Item"
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        )}
         {(isStandaloneItem || isChildItem) && (
           <Button
             size="sm"
@@ -313,6 +338,7 @@ export const StockTable: React.FC<StockTableProps> = ({
               onWithdraw={onWithdraw}
               userPermissions={userPermissions}
               childItems={childItemsForParent}
+              onAddChild={handleAddChildClick}
             />;
           })
         )}

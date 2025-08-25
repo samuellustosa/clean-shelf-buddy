@@ -83,6 +83,7 @@ const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("table");
+  const [initialParentId, setInitialParentId] = useState<string | null>(null);
 
   const paginatedEquipment = equipment;
   const paginatedStock = stock;
@@ -101,7 +102,7 @@ const Index = () => {
     setIsEquipmentFormOpen(true);
   };
   
-  const handleCreateStockItem = () => {
+  const handleCreateStockItem = (parentId: string | null = null) => {
     if (!userPermissions?.can_manage_stock) {
       toast({
         title: "Permissão negada",
@@ -112,6 +113,7 @@ const Index = () => {
     }
     setEditingStockItem(null);
     setFormMode('create');
+    setInitialParentId(parentId);
     setIsStockFormOpen(true);
   };
 
@@ -227,6 +229,7 @@ const Index = () => {
     setIsStockFormOpen(false);
     setEditingStockItem(null);
     setFormMode('create');
+    setInitialParentId(null);
   };
   
   const handleCloseWithdrawalModal = () => {
@@ -324,12 +327,12 @@ const Index = () => {
                 </DropdownMenuItem>
               )}
               {userPermissions?.can_add && activeTab !== 'stock' && (
-                <DropdownMenuItem onClick={handleCreateEquipment} className="flex items-center gap-2">
+                <DropdownMenuItem onClick={() => handleCreateEquipment()} className="flex items-center gap-2">
                   <Plus className="h-4 w-4" /> Novo Equipamento
                 </DropdownMenuItem>
               )}
               {userPermissions?.can_manage_stock && activeTab === 'stock' && (
-                <DropdownMenuItem onClick={handleCreateStockItem} className="flex items-center gap-2">
+                <DropdownMenuItem onClick={() => handleCreateStockItem()} className="flex items-center gap-2">
                   <Box className="h-4 w-4" /> Novo Item de Estoque
                 </DropdownMenuItem>
               )}
@@ -375,13 +378,13 @@ const Index = () => {
           </div>
           <div className="flex items-center gap-4">
             {!isMobile && isAuthenticated && activeTab === 'table' && userPermissions?.can_add && (
-              <Button onClick={handleCreateEquipment} className="flex items-center gap-2">
+              <Button onClick={() => handleCreateEquipment()} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Novo Equipamento
               </Button>
             )}
             {!isMobile && isAuthenticated && activeTab === 'stock' && userPermissions?.can_manage_stock && (
-              <Button onClick={handleCreateStockItem} className="flex items-center gap-2">
+              <Button onClick={() => handleCreateStockItem()} className="flex items-center gap-2">
                 <Plus className="h-4 w-4" />
                 Novo Item de Estoque
               </Button>
@@ -468,6 +471,7 @@ const Index = () => {
                 onDelete={handleDeleteStockItem}
                 userPermissions={userPermissions}
                 onWithdraw={handleOpenWithdrawalModal}
+                onAddChild={handleCreateStockItem}
               />
             )}
           </TabsContent>
@@ -497,6 +501,7 @@ const Index = () => {
           item={editingStockItem}
           mode={formMode}
           parentItems={parentItems}
+          initialParentId={initialParentId}
         />
 
         <WithdrawalModal

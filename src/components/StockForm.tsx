@@ -28,6 +28,7 @@ interface StockFormProps {
   item?: StockItem;
   mode: 'create' | 'edit';
   parentItems: StockItem[];
+  initialParentId?: string | null;
 }
 
 export const StockForm: React.FC<StockFormProps> = ({
@@ -37,6 +38,7 @@ export const StockForm: React.FC<StockFormProps> = ({
   item,
   mode,
   parentItems,
+  initialParentId,
 }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -69,11 +71,11 @@ export const StockForm: React.FC<StockFormProps> = ({
         minimum_stock: 0,
         location: '',
         asset_number: '',
-        parent_item_id: null,
+        parent_item_id: initialParentId || null,
         maintenance_status: 'ok',
       });
     }
-  }, [item, mode, isOpen]);
+  }, [item, mode, isOpen, initialParentId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
