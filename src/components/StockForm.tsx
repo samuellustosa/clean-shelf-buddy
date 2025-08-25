@@ -54,12 +54,12 @@ export const StockForm: React.FC<StockFormProps> = ({
   useEffect(() => {
     if (mode === 'edit' && item) {
       setFormData({
-        name: item.name,
-        category: item.category,
+        name: item.name.toUpperCase(),
+        category: item.category.toUpperCase(),
         current_quantity: item.current_quantity,
         minimum_stock: item.minimum_stock,
-        location: item.location,
-        asset_number: item.asset_number || '',
+        location: item.location.toUpperCase(),
+        asset_number: item.asset_number?.toUpperCase() || '',
         parent_item_id: item.parent_item_id || null,
         maintenance_status: item.maintenance_status || 'ok',
       });
@@ -88,7 +88,7 @@ export const StockForm: React.FC<StockFormProps> = ({
     const { id, value, type } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id]: (type === 'number') ? parseInt(value) || 0 : value
+      [id]: (type === 'number') ? parseInt(value) || 0 : value.toUpperCase()
     }));
   };
   
@@ -99,7 +99,7 @@ export const StockForm: React.FC<StockFormProps> = ({
     }));
   };
 
-  const categories = ['Periféricos', 'Toners', 'Cabos', 'Equipamentos', 'Outros'];
+  const categories = ['Periféricos', 'Toners', 'Cabos', 'Equipamentos', 'Outros'].map(c => c.toUpperCase());
   
   const maintenanceStatusMap = {
     ok: 'Em estoque',
@@ -111,26 +111,26 @@ export const StockForm: React.FC<StockFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Adicionar Item de Estoque' : 'Editar Item de Estoque'}
+            {mode === 'create' ? 'ADICIONAR ITEM DE ESTOQUE' : 'EDITAR ITEM DE ESTOQUE'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome do Item</Label>
+            <Label htmlFor="name">NOME DO ITEM</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={handleChange}
-              placeholder="Ex: Mouse Óptico"
+              placeholder="Ex: MOUSE ÓPTICO"
               required
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="category">Categoria</Label>
+            <Label htmlFor="category">CATEGORIA</Label>
             <Select
               value={formData.category}
               onValueChange={(value) => handleSelectChange('category', value)}
@@ -148,7 +148,7 @@ export const StockForm: React.FC<StockFormProps> = ({
           
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="current_quantity">Quantidade em Estoque</Label>
+              <Label htmlFor="current_quantity">QUANTIDADE EM ESTOQUE</Label>
               <Input
                 id="current_quantity"
                 type="number"
@@ -159,7 +159,7 @@ export const StockForm: React.FC<StockFormProps> = ({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="minimum_stock">Estoque Mínimo</Label>
+              <Label htmlFor="minimum_stock">ESTOQUE MÍNIMO</Label>
               <Input
                 id="minimum_stock"
                 type="number"
@@ -172,18 +172,18 @@ export const StockForm: React.FC<StockFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="location">Localização</Label>
+            <Label htmlFor="location">LOCALIZAÇÃO</Label>
             <Input
               id="location"
               value={formData.location}
               onChange={handleChange}
-              placeholder="Ex: Armário 1, Gaveta 2"
+              placeholder="Ex: ARMÁRIO 1, GAVETA 2"
               required
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="asset_number">Número de Patrimônio (Opcional)</Label>
+            <Label htmlFor="asset_number">NÚMERO DE PATRIMÔNIO (OPCIONAL)</Label>
             <Input
               id="asset_number"
               value={formData.asset_number}
@@ -193,7 +193,7 @@ export const StockForm: React.FC<StockFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="maintenance_status">Status de Manutenção</Label>
+            <Label htmlFor="maintenance_status">STATUS DE MANUTENÇÃO</Label>
             <Select
               value={formData.maintenance_status === 'ok' ? 'null' : formData.maintenance_status}
               onValueChange={(value) => handleSelectChange('maintenance_status', value === 'null' ? 'ok' as MaintenanceStatus : value as MaintenanceStatus)}
@@ -205,7 +205,7 @@ export const StockForm: React.FC<StockFormProps> = ({
                 <SelectItem value="null">Nenhum (Em estoque)</SelectItem>
                 {maintenanceStatusOptions.map(status => (
                   <SelectItem key={status} value={status}>
-                    {maintenanceStatusMap[status]}
+                    {maintenanceStatusMap[status as keyof typeof maintenanceStatusMap].toUpperCase()}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -213,7 +213,7 @@ export const StockForm: React.FC<StockFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="parent_item_id">Item Pai (Agrupar)</Label>
+            <Label htmlFor="parent_item_id">ITEM PAI (AGRUPAR)</Label>
             <Select
               value={formData.parent_item_id || "null"}
               onValueChange={(value) => handleSelectChange('parent_item_id', value === "null" ? null : value)}
@@ -227,7 +227,7 @@ export const StockForm: React.FC<StockFormProps> = ({
                   .filter(p => p.id !== item?.id)
                   .map(p => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {p.name.toUpperCase()}
                     </SelectItem>
                   ))}
               </SelectContent>
@@ -236,10 +236,10 @@ export const StockForm: React.FC<StockFormProps> = ({
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              CANCELAR
             </Button>
             <Button type="submit">
-              {mode === 'create' ? 'Adicionar' : 'Salvar'}
+              {mode === 'create' ? 'ADICIONAR' : 'SALVAR'}
             </Button>
           </DialogFooter>
         </form>

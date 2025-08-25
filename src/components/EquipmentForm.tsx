@@ -49,14 +49,13 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
   useEffect(() => {
     if (mode === 'edit' && equipment) {
       setFormData({
-        name: equipment.name,
-        sector: equipment.sector,
-        responsible: equipment.responsible,
+        name: equipment.name.toUpperCase(),
+        sector: equipment.sector.toUpperCase(),
+        responsible: equipment.responsible.toUpperCase(),
         periodicity: equipment.periodicity,
         last_cleaning: equipment.last_cleaning || getLocalDateISO()
       });
     } else if (mode === 'create' && isOpen) {
-      // Reseta o formulário para o estado inicial quando o modo é 'create'
       setFormData({
         name: '',
         sector: '',
@@ -80,14 +79,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
     const { id, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [id]: id === 'periodicity' ? parseInt(value) || 0 : value
+      [id]: id === 'periodicity' ? parseInt(value) || 0 : value.toUpperCase()
     }));
   };
   
   const handleSelectChange = (key: 'sector' | 'responsible', value: string) => {
     setFormData(prev => ({
       ...prev,
-      [key]: value
+      [key]: value.toUpperCase()
     }));
   };
 
@@ -96,12 +95,12 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Adicionar Equipamento' : 'Editar Equipamento'}
+            {mode === 'create' ? 'ADICIONAR EQUIPAMENTO' : 'EDITAR EQUIPAMENTO'}
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="name">Nome do Equipamento</Label>
+            <Label htmlFor="name">NOME DO EQUIPAMENTO</Label>
             <Input
               id="name"
               value={formData.name}
@@ -112,7 +111,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="sector">Setor</Label>
+            <Label htmlFor="sector">SETOR</Label>
             <Select
               value={formData.sector}
               onValueChange={(value) => handleSelectChange('sector', value)}
@@ -122,14 +121,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {uniqueSectors.map(sector => (
-                  <SelectItem key={sector} value={sector}>{sector}</SelectItem>
+                  <SelectItem key={sector} value={sector.toUpperCase()}>{sector.toUpperCase()}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="responsible">Responsável</Label>
+            <Label htmlFor="responsible">RESPONSÁVEL</Label>
             <Select
               value={formData.responsible}
               onValueChange={(value) => handleSelectChange('responsible', value)}
@@ -139,14 +138,14 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
               </SelectTrigger>
               <SelectContent>
                 {uniqueResponsibles.map(responsible => (
-                  <SelectItem key={responsible} value={responsible}>{responsible}</SelectItem>
+                  <SelectItem key={responsible} value={responsible.toUpperCase()}>{responsible.toUpperCase()}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="periodicity">Periodicidade (dias)</Label>
+            <Label htmlFor="periodicity">PERIODICIDADE (DIAS)</Label>
             <Input
               id="periodicity"
               type="number"
@@ -158,7 +157,7 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="last_cleaning">Data da Última Limpeza</Label>
+            <Label htmlFor="last_cleaning">DATA DA ÚLTIMA LIMPEZA</Label>
             <Input
               id="last_cleaning"
               type="date"
@@ -170,10 +169,10 @@ export const EquipmentForm: React.FC<EquipmentFormProps> = ({
           
           <DialogFooter>
             <Button type="button" variant="outline" onClick={onClose}>
-              Cancelar
+              CANCELAR
             </Button>
             <Button type="submit">
-              {mode === 'create' ? 'Criar' : 'Salvar'}
+              {mode === 'create' ? 'CRIAR' : 'SALVAR'}
             </Button>
           </DialogFooter>
         </form>
